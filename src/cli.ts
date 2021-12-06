@@ -1,8 +1,8 @@
 import { registerExternalValues, RegisterOptions } from './containerConfig';
-import { CliBuilder } from './cliBuilder';
+import { Argv } from 'yargs';
+import { CLI_BUILDER } from './common/constants';
 
-export const getCli = (registerOptions?: RegisterOptions): CliBuilder => {
+export const getCli = (registerOptions?: RegisterOptions): Argv => {
   const container = registerExternalValues(registerOptions);
-  const cli = container.resolve(CliBuilder).build();
-  return cli;
+  return container.resolve<Argv>(CLI_BUILDER);
 };

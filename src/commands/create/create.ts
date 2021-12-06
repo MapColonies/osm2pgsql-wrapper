@@ -1,10 +1,10 @@
-import { inject, injectable } from 'tsyringe';
+import { delay, inject, injectable } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import yargs, { Argv, CommandModule, Arguments } from 'yargs';
 import { join } from 'path';
 import { CreateManager } from './createManager';
 import { existsSync } from 'fs';
-import { GlobalArguments } from '../../cliBuilder';
+import { GlobalArguments } from '../../cliBuilderFactory';
 import { isStringEmptyOrUndefined } from '../../common/util';
 import { SERVICES } from '../../common/constants';
 
@@ -19,7 +19,7 @@ export class CreateCommand implements CommandModule<{}, CreateArguments> {
   public command = 'create';
   public describe = 'creating stuff';
 
-  public constructor(private readonly manager: CreateManager, @inject(SERVICES.LOGGER) private readonly logger: Logger) {}
+  public constructor(@inject(delay(() => CreateManager)) private manager: CreateManager, @inject(SERVICES.LOGGER) private readonly logger: Logger) {}
 
   public builder = (yargs: Argv) => {
     yargs

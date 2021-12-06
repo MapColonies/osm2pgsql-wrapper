@@ -18,12 +18,6 @@
       "url": "TELEMETRY_TRACING_URL"
     }
   },
-  "s3": {
-    "endpoint": "S3_ENDPOINT",
-    "region": "S3_REGION",
-    "accessKey": "AWS_ACCESS_KEY_ID",
-    "secretKey": "AWS_SECRET_ACCESS_KEY"
-  },
   "httpClient": {
     "timeout": {
       "__name": "HTTP_CLIENT_TIMEOUT",

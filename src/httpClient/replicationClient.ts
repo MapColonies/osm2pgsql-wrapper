@@ -22,7 +22,32 @@ export class ReplicationClient {
       });
       return { data: response.data, contentType: response.headers['content-type'], code: response.status };
     } catch (error) {
-      const axiosError = error as AxiosError<NodeJS.ReadStream>;
+      const axiosError = error as AxiosError<string>;
+      this.logger.error(axiosError);
+      if (axiosError.request !== undefined) {
+        throw new Error();
+        // throw new UpstreamUnavailableError('no response received from the upstream');
+      } else {
+        this.logger.error(axiosError.message);
+        throw new Error('replication request failed to dispatch');
+      }
+    }
+  }
+
+  public async getDiff(base: string, diffUrl: string): Promise<HttpResponse<Buffer>> {
+    console.log(`${base}${diffUrl}`);
+    try {
+      const response = await this.httpClient.get<Buffer>(diffUrl, {
+        baseURL: base,
+        responseType: 'arraybuffer',
+        headers: {
+          'Content-Type': 'application/gzip',
+        },
+      });
+      return { data: response.data, contentType: response.headers['content-type'], code: response.status };
+    } catch (error) {
+      const axiosError = error as AxiosError<Buffer>;
+      this.logger.error(axiosError);
       if (axiosError.request !== undefined) {
         throw new Error();
         // throw new UpstreamUnavailableError('no response received from the upstream');

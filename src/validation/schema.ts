@@ -37,5 +37,5 @@ export const APPEND_CONFIG_SCHEMA: JSONSchemaType<AppendEntity[]> = {
     additionalProperties: false,
   },
   uniqueItemProperties: ['id'],
-  minItems: 1
+  minItems: 1,
 };

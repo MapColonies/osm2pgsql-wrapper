@@ -9,9 +9,6 @@
       "url": "http://localhost:4318/v1/trace"
     }
   },
-  "s3": {
-    "region": "us-east-1"
-  },
   "httpClient": {
     "timeout": 1000
   }

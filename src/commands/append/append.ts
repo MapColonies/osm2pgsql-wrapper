@@ -1,9 +1,9 @@
-import { inject, injectable } from 'tsyringe';
+import { delay, inject, injectable } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import yargs, { Arguments, Argv, CommandModule } from 'yargs';
 import { AppendManager as AppendManager } from './appendManager';
 import { SERVICES, STATE_FILE } from '../../common/constants';
-import { GlobalArguments } from '../../cliBuilder';
+import { GlobalArguments } from '../../cliBuilderFactory';
 import { Validator } from '../../validation/validator';
 import { AppendEntity } from '../../validation/schema';
 
@@ -18,7 +18,8 @@ export class AppendCommand implements CommandModule<{}, AppendArguments> {
   public describe = 'appending stuff';
 
   public constructor(
-    private readonly manager: AppendManager,
+    // private readonly manager: AppendManager,
+    @inject(delay(() => AppendManager)) private manager: AppendManager,
     private readonly validator: Validator<AppendEntity[]>,
     @inject(SERVICES.LOGGER) private readonly logger: Logger
   ) {}
@@ -50,16 +51,17 @@ export class AppendCommand implements CommandModule<{}, AppendArguments> {
 
   public handler = async (argv: Arguments<AppendArguments>): Promise<void> => {
     const { s3BucketName, s3KeyId, s3ScriptKey, replicationUrl } = argv;
-    await this.manager.getCurrentSequenceNumber(s3BucketName, `${s3KeyId}/${STATE_FILE}`);
+    await this.manager.getStartSequenceNumber(s3BucketName, `${s3KeyId}/${STATE_FILE}`);
 
-    await this.manager.getReplicationSequenceNumber(replicationUrl);
+    await this.manager.getEndSequenceNumber(replicationUrl);
 
     if (this.manager.isUpToDate()) {
-      this.logger.info(`state is up to date, there is nothing to append.`)
+      this.logger.info(`state is up to date, there is nothing to append.`);
       return;
     }
 
     await this.manager.getScripts(s3BucketName, s3KeyId);
+    await this.manager.job(replicationUrl);
     this.logger.info(replicationUrl);
   };
 }

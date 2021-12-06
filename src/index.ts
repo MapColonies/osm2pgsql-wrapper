@@ -4,9 +4,10 @@ import 'reflect-metadata';
 import { container } from 'tsyringe';
 import { ON_SIGNAL } from './common/constants';
 import { getCli } from './cli';
+import { hideBin } from 'yargs/helpers';
 
 void getCli()
-  .run(process.argv)
+  .parseAsync(hideBin(process.argv))
   .catch((error: Error) => {
     console.error('failed initializing the cli');
     console.error(error.message);

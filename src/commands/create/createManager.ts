@@ -24,10 +24,7 @@ export class CreateManager {
       scriptFileContent = await streamToString(output.Body as NodeJS.ReadStream);
     } catch (error) {
       console.log(error);
-      // throw new ErrorWithExitCode(
-      //     `failed getting key: ${key} from bucket: ${bucket} received the following error: ${error}`,
-      //     ExitCodes.GET_FAILURE_ERROR
-      // );
+      throw new Error(error as string);
     }
     const localScriptPath = join(DATA_DIR, key);
     await createDirectory(localScriptPath);
