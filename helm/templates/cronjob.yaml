@@ -1,0 +1,64 @@
+{{- $releaseName := .Release.Name -}}
+{{- $chartName := include "osm2pgsql-wrapper.name" . -}}
+{{- $cloudProviderFlavor := include "osm2pgsql-wrapper.cloudProviderFlavor" . -}}
+{{- $cloudProviderDockerRegistryUrl := include "osm2pgsql-wrapper.cloudProviderDockerRegistryUrl" . -}}
+{{- $tag := include "osm2pgsql-wrapper.tag" . -}}
+{{- if .Values.enabled -}}
+apiVersion: {{ .Values.cron.apiVersion | quote }}
+kind: CronJob
+metadata:
+  name: {{ $releaseName }}-{{ $chartName }}
+  labels:
+    app: {{ $chartName }}
+    component: {{ $chartName }}
+    environment: {{ include "osm2pgsql-wrapper.environment" . }}
+    release: {{ $releaseName }}
+    {{- include "osm2pgsql-wrapper.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cron.schedule | quote }}
+  successfulJobsHistoryLimit: {{ .Values.cron.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cron.failedJobsHistoryLimit }}
+  concurrencyPolicy: {{ .Values.cron.concurrencyPolicy }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: {{ .Values.cron.restartPolicy }}
+          containers:
+            - name: {{ $releaseName }}-{{ $chartName }}-cronjob
+              {{- with .Values.image }}
+              {{- if ne $cloudProviderFlavor "minikube" }}
+              image: {{ $cloudProviderDockerRegistryUrl }}/{{ .repository }}:{{ $tag }}
+              {{- else }}
+              image: {{ .repository }}:{{ $tag }}
+              {{- end }}
+              {{- end }}
+              imagePullPolicy: {{ .pullPolicy }}
+              envFrom:
+                - configMapRef:
+                    name: {{ $releaseName }}-{{ $chartName }}-configmap
+              {{- if .Values.resources.enabled }}
+              resources:
+                {{- toYaml .Values.resources.value | nindent 16 }}
+              {{- end }}
+              volumeMounts:
+              {{- if eq .Values.cli.command "append" }}
+                - name: config-schema
+                  mountPath: {{ .Values.cli.append.config.mountPath }}
+              {{- end }}
+              {{- if .Values.postgres.sslAuth.enabled }}
+                - name: cert-conf
+                  mountPath: {{ .Values.postgres.sslAuth.mountPath }}
+              {{- end }}
+          volumes:
+            {{- if eq .Values.cli.command "append" }}
+            - name: config-schema
+              configMap:
+                name: {{ $releaseName }}-{{ $chartName }}-schema-configmap
+            {{- end }}
+            {{- if .Values.postgres.sslAuth.enabled }}
+            - name: cert-conf
+              secret:
+                secretName: {{ .Values.postgres.sslAuth.secretName }}
+            {{- end }}
+{{- end -}}

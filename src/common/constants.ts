@@ -27,16 +27,21 @@ export const ExitCodes = {
   PUT_OBJECT_ERROR: 103,
   // ROLLBACK_FAILURE_ERROR: 104,
   HTTP_ERROR: 105,
+  S3_CLIENT_ERROR: 106,
   TERMINATED: 130,
 };
 
 export const S3_REGION = 'us-east-1';
 export const OSM2PGSQL_PATH = '/osm2pgsql/osm2pgsql';
+export const OSMIUM_PATH = '/osmium-tool/build/osmium';
 export const DATA_DIR = '/tmp';
 export const STATE_FILE = 'state.txt';
+export const EXPIRE_LIST = 'expire.list';
 export const DIFF_FILE_EXTENTION = 'osc.gz';
 export const DEFAULT_SEQUENCE_NUMBER = -1;
+export const SEQUENCE_NUMBER = 'sequenceNumber';
 export const SEQUENCE_NUMBER_REGEX = /sequenceNumber=\d+/;
+export const SEQUENCE_NUMBER_PAD_AMOUNT = 3;
 export const DIFF_TOP_DIR_DIVIDER = 1000000;
 export const DIFF_BOTTOM_DIR_DIVIDER = 1000;
 export const DIFF_STATE_FILE_MODULO = 1000;

@@ -1,0 +1,10 @@
+{{- $chartName := include "osm2pgsql-wrapper.name" . -}}
+{{- if and (.Values.enabled) (eq .Values.cli.command "append") -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-{{ $chartName }}-schema-configmap
+data:
+  {{ .Values.cli.append.config.fileName }}: |-
+{{ .Values.configSchema | indent 4 }}
+{{- end }}

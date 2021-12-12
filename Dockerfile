@@ -17,7 +17,8 @@ RUN apt-get -y update && apt -y install \
   lua5.3 \
   liblua5.3-dev \
   pandoc \
-  git-core
+  git-core \
+  libboost-program-options-dev
 
 RUN git clone git://github.com/openstreetmap/osm2pgsql.git && \
   cd osm2pgsql && \
@@ -26,6 +27,15 @@ RUN git clone git://github.com/openstreetmap/osm2pgsql.git && \
   cmake .. && \
   make && \
   make install
+
+RUN git clone https://github.com/osmcode/osmium-tool && \
+  git clone https://github.com/mapbox/protozero && \
+  git clone https://github.com/osmcode/libosmium && \
+  cd osmium-tool && \
+  mkdir build && \
+  cd build && \
+  cmake .. && \
+  make
 
 FROM node:14 as buildApp
 
@@ -45,27 +55,21 @@ ARG NODE_VERSION=14.x
 
 WORKDIR ${workdir}
 
-COPY package*.json ./
-
 RUN apt-get update \
     && apt-get -yq install curl \
     && curl -L https://deb.nodesource.com/setup_${NODE_VERSION} | bash \
-    && apt-get -yq install nodejs libboost-filesystem-dev libpq-dev libproj-dev liblua5.3-dev
+    && apt-get -yq install nodejs libboost-filesystem-dev libpq-dev libproj-dev liblua5.3-dev libboost-program-options-dev
 
-COPY --from=build /osm2pgsql/build /osm2pgsql
-COPY --from=buildApp /tmp/buildApp/dist .
-COPY ./config ./config
-# RUN chmod g+w /app
-
-# COPY package*.json /app/
+COPY package*.json ./
 
 RUN npm ci --only=production
 
-COPY start.sh .
-COPY ./src ./src
+COPY --from=buildApp /tmp/buildApp/dist .
+COPY --from=build /osm2pgsql/build /osm2pgsql
+COPY --from=build /osmium-tool/build /osmium-tool/build
 COPY ./config ./config
-COPY ./sample/config-example.json /tmp/config-example.json
-COPY ./sample/andorra-latest.osm.pbf /tmp/dump.osm.pbf
+
+COPY start.sh .
 
 RUN chgrp root ${workdir}/start.sh && chmod -R a+rwx ${workdir} && \
     mkdir /.postgresql && chmod g+w /.postgresql

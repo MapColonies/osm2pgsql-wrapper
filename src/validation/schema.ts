@@ -1,5 +1,8 @@
 import { JSONSchemaType } from 'ajv';
 
+const ZOOM_LEVEL_MINIMUM = 0;
+const ZOOM_LEVEL_MAXIMUM = 20;
+
 export interface AppendEntity {
   id: string;
   script: string;
@@ -8,9 +11,6 @@ export interface AppendEntity {
     max?: number;
   };
 }
-
-const ZOOM_LEVEL_MINIMUM = 0;
-const ZOOM_LEVEL_MAXIMUM = 20;
 
 // TODO add exclusiveMinimum: { $data: '1/min' }
 export const APPEND_CONFIG_SCHEMA: JSONSchemaType<AppendEntity[]> = {

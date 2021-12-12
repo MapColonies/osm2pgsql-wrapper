@@ -1,7 +1,7 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 
-export const streamToString = (stream: NodeJS.ReadStream): Promise<string> => {
+export const streamToString = async (stream: NodeJS.ReadStream): Promise<string> => {
   return new Promise((resolve, reject) => {
     const chunks: Uint8Array[] = [];
     stream.on('data', (chunk) => chunks.push(chunk));
@@ -14,12 +14,16 @@ export const createDirectory = async (filePath: string): Promise<void> => {
   const filePathArray = filePath.split('/');
   filePathArray.pop();
   const dir = filePathArray.join('/');
-  if (fs.existsSync(dir)) return;
+  if (fs.existsSync(dir)) {
+    return;
+  }
   await fsPromises.mkdir(dir, { recursive: true });
 };
 
-export const isStringEmptyOrUndefined = (input: string | undefined) => {
-  if (input === undefined || input === '') return true;
+export const isStringEmptyOrUndefined = (input: string | undefined): boolean => {
+  if (input === undefined || input === '') {
+    return true;
+  }
   return false;
 };
 

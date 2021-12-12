@@ -8,32 +8,25 @@ enabled: true
 environment: development
 
 cloudProvider:
-  dockerRegistryUrl: my-registry-url.io
   flavor: openshift
+  dockerRegistryUrl: my-registry-url.io
 
 image:
-  repository: ts-script-boilerplate
-  tag: 'latest'
+  repository: osm2pgsql-wrapper
+  # Overrides the image tag whose default is the chart appVersion.
+  # tag: 'v1.0.0'
+  pullPolicy: Always
 
 cron:
-  schedule:  '0 0 * * *'
+  schedule: '* */1 * * *'
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
   concurrencyPolicy: Forbid
   restartPolicy: OnFailure
-
-env:
-  logLevel: info
-  logPrettyPrintEnabled: false
-  tracing:
-    enabled: false
-    url: http://localhost:55681/v1/trace
-  metrics:
-    enabled: false
-    url: http://localhost:55681/v1/metrics
+  apiVersion: 'batch/v1' # depends on openshift version batch/v1 or batch/v1beta1
 
 resources:
-  enabled: true
+  enabled: false
   value:
     limits:
       cpu: 100m
@@ -42,3 +35,65 @@ resources:
       cpu: 100m
       memory: 128Mi
 
+env:
+  logLevel: info
+  logPrettyPrintEnabled: false
+  tracing:
+    enabled: false
+    url: http://localhost:55681/v1/trace
+  httpClient:
+    timeout: 1000
+
+postgres:
+  host: localhost
+  username: postgres
+  password: postgres
+  database: osm2pgsql
+  # port: 5432
+  sslAuth:
+    enabled: false
+    secretName: secret-name
+    mountPath: '/tmp/certs-postgres'
+
+s3:
+  #TODO: should have projectId?
+  accessKey: accessKey
+  secretKey: secret
+  protocol: http
+  host: localhost
+  port: 9000
+  bucketName: osm2pgsql
+  keyId: someId
+  # acl: public-read
+
+cli:
+  command: 'create' # create or append
+  append:
+    replicationUrl: 'https://planet.openstreetmap.org/replication/minute'
+    config:
+      mountPath: '/tmp'
+      fileName: 'config.json'
+  create:
+    s3ScriptKey: script.lua
+    dumpFilePath: '/tmp/dump.pbf'
+    dumpServerUrl: 'https://dump-server.com'
+
+configSchema: |-
+  [
+    {
+      "id": "ways",
+      "script": "sub-simple-ways.lua",
+      "zoomLevel": {
+        "min": 1,
+        "max": 3
+      }
+    },
+    {
+      "id": "pois",
+      "script": "sub-simple-pois.lua",
+      "zoomLevel": {
+        "min": 4,
+        "max": 5
+      }
+    }
+  ]
