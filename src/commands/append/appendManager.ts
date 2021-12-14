@@ -37,7 +37,7 @@ export class AppendManager {
     private readonly s3Client: S3ClientWrapper,
     private readonly replicationClient: ReplicationClient,
     private readonly commandRunner: CommandRunner
-  ) { }
+  ) {}
 
   public async prepareManager(id: string, entities: AppendEntity[]): Promise<void> {
     this.logger.info(`preparing environment, id: ${id}, number of entities: ${entities.length}`);
@@ -83,7 +83,7 @@ export class AppendManager {
       const localScriptPath = join(DATA_DIR, scriptKey);
       await createDirectory(getFileDirectory(localScriptPath));
       await fsPromises.writeFile(localScriptPath, scriptFileContent);
-    })
+    });
 
     await Promise.all(getScriptPromises);
   }

@@ -65,7 +65,7 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
 
       await this.manager.getScripts(s3BucketName);
       // while (!this.manager.isUpToDate()) {
-        await this.manager.appendReplications(replicationUrl, s3BucketName, s3Acl);
+      await this.manager.appendReplications(replicationUrl, s3BucketName, s3Acl);
       // }
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;

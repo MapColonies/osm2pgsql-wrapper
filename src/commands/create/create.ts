@@ -6,13 +6,7 @@ import { container, delay, inject, injectable } from 'tsyringe';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { isStringEmptyOrUndefined } from '../../common/util';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
-import {
-  DumpServerEmptyResponseError,
-  Osm2pgsqlError,
-  S3Error,
-  HttpUpstreamUnavailableError,
-  HttpUpstreamResponseError,
-} from '../../common/errors';
+import { DumpServerEmptyResponseError, Osm2pgsqlError, S3Error, HttpUpstreamUnavailableError, HttpUpstreamResponseError } from '../../common/errors';
 import { CreateManager } from './createManager';
 
 enum DumpSource {

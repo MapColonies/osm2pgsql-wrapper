@@ -17,10 +17,9 @@ export const getFileDirectory = (filePath: string): string => {
 };
 
 export const createDirectory = async (dir: string): Promise<void> => {
-  // if (fs.existsSync(dir)) {
-  //   return;
-  // }
-  console.log(`creating directory ${dir}`);
+  if (fs.existsSync(dir)) {
+    return;
+  }
   await fsPromises.mkdir(dir, { recursive: true }).catch((e) => console.log(e));
 };
 
