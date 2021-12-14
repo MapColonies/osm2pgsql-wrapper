@@ -2,7 +2,7 @@ import yargs from 'yargs/yargs';
 import { Argv } from 'yargs';
 import { S3Client } from '@aws-sdk/client-s3';
 import { FactoryFunction } from 'tsyringe';
-import { SERVICES, S3_REGION, ExitCodes } from './common/constants';
+import { SERVICES, S3_REGION } from './common/constants';
 import { AppendCommand } from './commands/append/append';
 import { CreateCommand } from './commands/create/create';
 
@@ -14,9 +14,6 @@ export interface GlobalArguments {
 }
 
 export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) => {
-  const create = dependencyContainer.resolve(CreateCommand);
-  const append = dependencyContainer.resolve(AppendCommand);
-
   const args = yargs()
     .env()
     .usage('Usage: $0 <command> [options]')
@@ -42,21 +39,16 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
 
   args.middleware((argv) => {
     const { s3Endpoint } = argv;
-    try {
-      const client = new S3Client({
-        region: S3_REGION,
-        endpoint: s3Endpoint,
-        forcePathStyle: true,
-      });
-      dependencyContainer.register(SERVICES.S3, { useValue: client });
-    } catch (error) {
-      console.log(error);
-      process.exit(ExitCodes.S3_CLIENT_ERROR);
-    }
+    const client = new S3Client({
+      endpoint: s3Endpoint,
+      region: S3_REGION,
+      forcePathStyle: true,
+    });
+    dependencyContainer.register(SERVICES.S3, { useValue: client });
   });
 
-  args.command(create);
-  args.command(append);
+  args.command(dependencyContainer.resolve(CreateCommand));
+  args.command(dependencyContainer.resolve(AppendCommand));
 
   return args;
 };

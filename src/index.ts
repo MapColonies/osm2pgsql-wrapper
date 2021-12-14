@@ -3,10 +3,9 @@
 import 'reflect-metadata';
 import { container } from 'tsyringe';
 import { hideBin } from 'yargs/helpers';
-import { ON_SIGNAL } from './common/constants';
+import { ExitCodes, EXIT_CODE, ON_SIGNAL } from './common/constants';
 import { getCli } from './cli';
 
-// TODO: test shutDown
 void getCli()
   .parseAsync(hideBin(process.argv))
   .catch((error: Error) => {
@@ -15,6 +14,8 @@ void getCli()
   })
   .finally(() => {
     const shutDown: () => Promise<void> = container.resolve(ON_SIGNAL);
-    void shutDown();
-    console.log('after shutdown');
+    void shutDown().then(() => {
+      const exitCode = container.isRegistered(EXIT_CODE) ? container.resolve<number>(EXIT_CODE) : ExitCodes.GENERAL_ERROR;
+      process.exit(exitCode);
+    });
   });

@@ -2,6 +2,7 @@ import { inject } from 'tsyringe';
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Logger } from '@map-colonies/js-logger';
 import { SERVICES } from '../common/constants';
+import { HttpUpstreamResponseError, HttpUpstreamUnavailableError } from '../common/errors';
 
 type AxiosRequestArgs<T> = AxiosRequestArgsWithoutData | AxiosRequestArgsWithData<T>;
 export type AxiosRequestArgsWithoutData = [string, AxiosRequestConfig?];
@@ -25,13 +26,14 @@ export abstract class BaseClient {
       return { data: response.data, contentType: response.headers['content-type'], code: response.status };
     } catch (error) {
       const axiosError = error as AxiosError<T>;
-      this.logger.error(axiosError);
-      if (axiosError.request !== undefined) {
-        throw new Error();
-        // throw new UpstreamUnavailableError('no response received from the upstream');
+      this.logger.debug(axiosError.toJSON());
+      this.logger.error(`received the following error message: ${axiosError.message}`);
+      if (axiosError.response !== undefined) {
+        throw new HttpUpstreamResponseError(`upstream responded with error`);
+      } else if (axiosError.request !== undefined) {
+        throw new HttpUpstreamUnavailableError('no response received from the upstream');
       } else {
-        this.logger.error(axiosError.message);
-        throw new Error('replication request failed to dispatch');
+        throw new Error('request failed to dispatch');
       }
     }
   };

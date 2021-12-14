@@ -4,7 +4,7 @@ import { trace } from '@opentelemetry/api';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import jsLogger, { LoggerOptions } from '@map-colonies/js-logger';
 import axios from 'axios';
-import { ON_SIGNAL, SERVICES, CLI_NAME, CLI_BUILDER } from './common/constants';
+import { ON_SIGNAL, SERVICES, CLI_NAME, CLI_BUILDER, EXIT_CODE, ExitCodes } from './common/constants';
 import { tracing } from './common/tracing';
 import { InjectionObject, registerDependencies } from './common/dependencyRegistration';
 import { cliBuilderFactory } from './cliBuilderFactory';
@@ -34,11 +34,11 @@ export const registerExternalValues = (options?: RegisterOptions): DependencyCon
       token: ON_SIGNAL,
       provider: {
         useValue: async (): Promise<void> => {
-          console.log('shutting down');
           await Promise.all([tracing.stop()]);
         },
       },
     },
+    { token: EXIT_CODE, provider: { useValue: ExitCodes.SUCCESS } },
   ];
 
   return registerDependencies(dependencies, options?.override, options?.useChild);

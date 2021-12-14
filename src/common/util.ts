@@ -10,14 +10,18 @@ export const streamToString = async (stream: NodeJS.ReadStream): Promise<string>
   });
 };
 
-export const createDirectory = async (filePath: string): Promise<void> => {
+export const getFileDirectory = (filePath: string): string => {
   const filePathArray = filePath.split('/');
   filePathArray.pop();
-  const dir = filePathArray.join('/');
-  if (fs.existsSync(dir)) {
-    return;
-  }
-  await fsPromises.mkdir(dir, { recursive: true });
+  return filePathArray.join('/');
+};
+
+export const createDirectory = async (dir: string): Promise<void> => {
+  // if (fs.existsSync(dir)) {
+  //   return;
+  // }
+  console.log(`creating directory ${dir}`);
+  await fsPromises.mkdir(dir, { recursive: true }).catch((e) => console.log(e));
 };
 
 export const isStringEmptyOrUndefined = (input: string | undefined): boolean => {

@@ -7,6 +7,7 @@ export const IGNORED_INCOMING_TRACE_ROUTES = [/^.*\/docs.*$/];
 
 export const CLI_BUILDER = Symbol('cliBuilder');
 export const ON_SIGNAL = Symbol('onSignal');
+export const EXIT_CODE = Symbol('exitCode');
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const SERVICES: Record<string, symbol> = {
@@ -21,21 +22,20 @@ export const SERVICES: Record<string, symbol> = {
 export const ExitCodes = {
   SUCCESS: 0,
   GENERAL_ERROR: 1,
-  // OSMDBT_ERROR: 100,
-  GET_OBJECT_ERROR: 101,
+  OSM2PGSQL_ERROR: 100,
+  S3_ERROR: 101,
   INVALID_STATE_FILE_ERROR: 102,
-  PUT_OBJECT_ERROR: 103,
-  // ROLLBACK_FAILURE_ERROR: 104,
-  HTTP_ERROR: 105,
-  S3_CLIENT_ERROR: 106,
+  REMOTE_SERVICE_RESPONSE_ERROR: 103,
+  REMOTE_SERVICE_UNAVAILABLE: 104,
+  DUMP_SERVER_EMPTY_RESPONSE_ERROR: 105,
+  OSMIUM_ERROR: 106,
   TERMINATED: 130,
 };
 
 export const S3_REGION = 'us-east-1';
-export const OSM2PGSQL_PATH = '/osm2pgsql/osm2pgsql';
-export const OSMIUM_PATH = '/osmium-tool/build/osmium';
 export const DATA_DIR = '/tmp';
 export const STATE_FILE = 'state.txt';
+export const DEFAULT_DUMP_NAME = 'dump.osm.pbf';
 export const EXPIRE_LIST = 'expire.list';
 export const DIFF_FILE_EXTENTION = 'osc.gz';
 export const DEFAULT_SEQUENCE_NUMBER = -1;

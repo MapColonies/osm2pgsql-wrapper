@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ways",
+    "script": "sub-simple-ways.lua",
+    "zoomLevel": {
+      "min": 1,
+      "max": 3
+    }
+  },
+  {
+    "id": "ways",
+    "script": "sub-simple-pois.lua",
+    "zoomLevel": {
+      "min": 4,
+      "max": 5
+    }
+  }
+]

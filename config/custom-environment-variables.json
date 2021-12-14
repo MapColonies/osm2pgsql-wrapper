@@ -23,5 +23,37 @@
       "__name": "HTTP_CLIENT_TIMEOUT",
       "__format": "number"
     }
+  },
+  "osm2pgsql": {
+    "slim": {
+      "__name": "OSM2PGSQL_SLIM",
+      "__format": "boolean"
+    },
+    "cache": {
+      "__name": "OSM2PGSQL_CACHE",
+      "__format": "number"
+    },
+    "processes": {
+      "__name": "OSM2PGSQL_PROCESSES",
+      "__format": "number"
+    },
+    "output": "OSM2PGSQL_OUTPUT",
+    "logger": {
+      "level": "OSM2PGSQL_LOG_LEVEL",
+      "progress": {
+        "__name": "OSM2PGSQL_LOG_PROGRESS",
+        "__format": "boolean"
+      }
+    }
+  },
+  "osmium": {
+    "verbose": {
+      "__name": "OSMIUM_VERBOSE",
+      "__format": "boolean"
+    },
+    "progress": {
+      "__name": "OSMIUM_PROGRESS",
+      "__format": "boolean"
+    }
   }
 }

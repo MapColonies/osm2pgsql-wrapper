@@ -37,6 +37,10 @@ spec:
               envFrom:
                 - configMapRef:
                     name: {{ $releaseName }}-{{ $chartName }}-configmap
+                - configMapRef:
+                    name: {{ $releaseName }}-{{ $chartName }}-command-options-configmap
+                - secretRef:
+                    name: {{ $releaseName }}-{{ $chartName }}-secret
               {{- if .Values.resources.enabled }}
               resources:
                 {{- toYaml .Values.resources.value | nindent 16 }}

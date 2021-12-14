@@ -31,13 +31,24 @@ data:
   TELEMETRY_TRACING_ENABLED: "false"
   {{- end }}
   HTTP_CLIENT_TIMEOUT: {{ .Values.env.httpClient.timeout | quote }}
-  COMMAND: {{ .Values.cli.command | quote }}
-  {{- if eq .Values.cli.command "append" }}
-  CONFIG: {{ printf "%s/%s" .Values.cli.append.config.mountPath .Values.cli.append.config.fileName | quote }}
-  REPLICATION_URL: {{ .Values.cli.append.replicationUrl | quote }}
+  {{ if .Values.env.osm2pgsql.slim }}
+  OSM2PGSQL_SLIM: "true"
+  {{- else }}
+  OSM2PGSQL_SLIM: "false"
   {{- end }}
-  {{- if eq .Values.cli.command "create" }}
-  S3_SCRIPT_KEY: {{ .Values.cli.create.s3ScriptKey | quote }}
-  DUMP_SERVER_URL: {{ .Values.cli.create.dumpServerUrl | quote }}
+  OSM2PGSQL_CACHE: {{ .Values.env.osm2pgsql.processes | quote }}
+  OSM2PGSQL_PROCESSES: {{ .Values.env.osm2pgsql.processes | quote }}
+  OSM2PGSQL_OUTPUT: {{ .Values.env.osm2pgsql.output | quote }}
+  OSM2PGSQL_LOG_LEVEL: {{ .Values.env.osm2pgsql.logLevel | quote }}
+  OSM2PGSQL_LOG_PROGRESS: {{ .Values.env.osm2pgsql.logProgress | quote }}
+  {{ if .Values.env.osmium.verbose }}
+  OSMIUM_VERBOSE: "true"
+  {{- else }}
+  OSMIUM_VERBOSE: "false"
+  {{- end }}
+  {{ if .Values.env.osmium.progress }}
+  OSMIUM_PROGRESS: "true"
+  {{- else }}
+  OSMIUM_PROGRESS: "false"
   {{- end }}
 {{- end -}}

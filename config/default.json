@@ -1,7 +1,7 @@
 {
   "telemetry": {
     "logger": {
-      "level": "info",
+      "level": "debug",
       "prettyPrint": true
     },
     "tracing": {
@@ -11,5 +11,19 @@
   },
   "httpClient": {
     "timeout": 1000
+  },
+  "osm2pgsql": {
+    "slim": true,
+    "cache": 2500,
+    "processes": 2,
+    "output": "flex",
+    "logger": {
+      "level": "debug",
+      "progress": true
+    }
+  },
+  "osmium": {
+    "verbose": false,
+    "progress": false
   }
 }

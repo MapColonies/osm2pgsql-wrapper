@@ -1,13 +1,9 @@
-/* eslint-disable @typescript-eslint/naming-convention */ // due to @aws-sdk/client-s3 command arguments
 import { join } from 'path';
 import fsPromises from 'fs/promises';
 import { inject, injectable } from 'tsyringe';
-import { $ } from 'zx';
 import { Logger } from '@map-colonies/js-logger';
-import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import {
   DATA_DIR,
-  OSM2PGSQL_PATH,
   SERVICES,
   DEFAULT_SEQUENCE_NUMBER,
   SEQUENCE_NUMBER_REGEX,
@@ -17,12 +13,14 @@ import {
   DIFF_FILE_EXTENTION,
   STATE_FILE,
   EXPIRE_LIST,
-  OSMIUM_PATH,
   SEQUENCE_NUMBER_PAD_AMOUNT,
 } from '../../common/constants';
-import { createDirectory, removeDuplicates, streamToString } from '../../common/util';
+import { createDirectory, getFileDirectory, removeDuplicates, streamToString } from '../../common/util';
 import { ReplicationClient } from '../../httpClient/replicationClient';
 import { AppendEntity } from '../../validation/schema';
+import { S3ClientWrapper } from '../../s3Client/s3Client';
+import { CommandRunner } from '../../common/commandRunner';
+import { InvalidStateFileError } from '../../common/errors';
 
 let stateContent: string;
 
@@ -36,13 +34,16 @@ export class AppendManager {
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(SERVICES.S3) private readonly s3Client: S3Client,
-    private readonly replicationClient: ReplicationClient
-  ) {}
+    private readonly s3Client: S3ClientWrapper,
+    private readonly replicationClient: ReplicationClient,
+    private readonly commandRunner: CommandRunner
+  ) { }
 
   public async prepareManager(id: string, entities: AppendEntity[]): Promise<void> {
+    this.logger.info(`preparing environment, id: ${id}, number of entities: ${entities.length}`);
     this.appendId = id;
-    await createDirectory(join(DATA_DIR, id));
+    const dir = join(DATA_DIR, id);
+    await createDirectory(dir);
     this.entities = entities;
   }
 
@@ -51,84 +52,86 @@ export class AppendManager {
   }
 
   public async getStartSequenceNumber(bucket: string): Promise<void> {
-    try {
-      const key = join(this.appendId, STATE_FILE);
-      const commandOutput = await this.s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    this.logger.info(`getting the start sequence number from bucket`);
 
-      if (commandOutput.Body === undefined) {
-        throw Error();
-      }
+    const stateKey = join(this.appendId, STATE_FILE);
+    const stateStream = await this.s3Client.getObjectWrapper(bucket, stateKey);
+    stateContent = await streamToString(stateStream);
+    this.start = this.fetchSequenceNumber(stateContent);
+    this.current = this.start;
 
-      stateContent = await streamToString(commandOutput.Body as NodeJS.ReadStream);
-      this.start = this.fetchSequenceNumber(stateContent);
-      this.current = this.start;
-      this.logger.info(`start sequenceNumber ${this.start}`);
-    } catch (error) {
-      console.log(error);
-    }
+    this.logger.info(`start sequence number ${this.start}`);
   }
 
   public async getEndSequenceNumber(replicationUrl: string): Promise<void> {
-    try {
-      const response = await this.replicationClient.getState(replicationUrl);
-      this.end = this.fetchSequenceNumber(response.data);
-      this.logger.info(`end sequenceNumber ${this.end}`);
-    } catch (error) {
-      console.log(error);
-    }
+    this.logger.info(`getting the end sequence number from remote replication source`);
+
+    const response = await this.replicationClient.getState(replicationUrl);
+    this.end = this.fetchSequenceNumber(response.data);
+
+    this.logger.info(`end sequence number ${this.end}`);
   }
 
   public async getScripts(bucket: string): Promise<void> {
+    this.logger.info(`getting scripts from bucket to file system`);
+
     const scriptsKeys = removeDuplicates(this.entities.map((entity) => join(this.appendId, entity.script)));
-    for await (const scriptKey of scriptsKeys) {
-      const commandOutput = await this.s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: scriptKey }));
-      if (commandOutput.Body === undefined) {
-        throw Error();
-      }
-      const scriptFileContent = await streamToString(commandOutput.Body as NodeJS.ReadStream);
-      const localPath = join(DATA_DIR, scriptKey);
-      await createDirectory(localPath);
-      await fsPromises.writeFile(localPath, scriptFileContent);
-    }
+
+    const getScriptPromises = scriptsKeys.map(async (scriptKey) => {
+      const scriptStream = await this.s3Client.getObjectWrapper(bucket, scriptKey);
+      const scriptFileContent = await streamToString(scriptStream);
+      const localScriptPath = join(DATA_DIR, scriptKey);
+      await createDirectory(getFileDirectory(localScriptPath));
+      await fsPromises.writeFile(localScriptPath, scriptFileContent);
+    })
+
+    await Promise.all(getScriptPromises);
   }
 
   public async appendReplications(replicationUrl: string, bucket: string, acl: string): Promise<void> {
+    this.logger.info(`${this.appendId} current sequence number ${this.current}`);
+
     const diffPath = await this.getDiffToFs(replicationUrl);
 
     const simplifiedDiffPath = await this.simplifyDiff(diffPath);
 
-    const promises = this.entities.map(async (entity) => {
-      this.logger.info(entity);
+    const appendPromises = this.entities.map(async (entity) => {
       const localScriptPath = join(DATA_DIR, this.appendId, entity.script);
       const expireTilesZoom = this.zoomLevelsToRange(entity.zoomLevel.min, entity.zoomLevel.max);
       const expireTilesFileName = `${entity.id}.${this.current}.${EXPIRE_LIST}`;
       const localExpireTilesListPath = join(DATA_DIR, this.appendId, expireTilesFileName);
 
-      await $`${OSM2PGSQL_PATH} \
-        --append \
-        --slim \
-        --multi-geometry \
-        --style=${localScriptPath} \
-        --cache=2500 \
-        --number-processes 2 \
-        ${simplifiedDiffPath} \
-        --output=flex \
-        --expire-tiles=${expireTilesZoom} \
-        --expire-output=${localExpireTilesListPath}`;
+      this.logger.info(`initializing the append of ${entity.id}`);
+
+      await this.commandRunner.run('osm2pgsql', '--append', [
+        `--style=${localScriptPath}`,
+        simplifiedDiffPath,
+        `--expire-tiles=${expireTilesZoom}`,
+        `--expire-output=${localExpireTilesListPath}`,
+      ]);
+
+      this.logger.info(`appending completed for ${entity.id}, uploading expire list`);
 
       const expireListKey = join(this.appendId, entity.id, this.current.toString(), EXPIRE_LIST);
-      console.log(expireListKey);
       const expireTilesListContent = await fsPromises.readFile(localExpireTilesListPath);
-      await this.s3Client.send(new PutObjectCommand({ Bucket: bucket, Key: expireListKey, Body: expireTilesListContent, ACL: acl }));
+      await this.s3Client.putObjectWrapper(bucket, expireListKey, expireTilesListContent, acl);
     });
 
-    await Promise.all(promises);
+    await Promise.all(appendPromises);
+
+    this.logger.info(`all appends completed successfuly for state ${this.current}, updating remote state source`);
+
     stateContent = stateContent.replace(SEQUENCE_NUMBER_REGEX, `sequenceNumber=${++this.current}`);
+    const stateBuffer = Buffer.from(stateContent, 'utf-8');
     const stateKey = join(this.appendId, STATE_FILE);
-    await this.s3Client.send(new PutObjectCommand({ Bucket: bucket, Key: stateKey, Body: stateContent, ACL: acl }));
+    await this.s3Client.putObjectWrapper(bucket, stateKey, stateBuffer, acl);
+
+    this.logger.info(`remote state source of ${this.appendId} updated successfully, current state ${this.current}`);
   }
 
   private async getDiffToFs(replicationUrl: string): Promise<string> {
+    this.logger.info(`getting osm change file from remote replication source to file system`);
+
     const [top, bottom, sequenceNumber] = this.getDiffDirPathComponents(this.current);
     const diffKey = join(top, bottom, `${sequenceNumber}.${DIFF_FILE_EXTENTION}`);
     const response = await this.replicationClient.getDiff(replicationUrl, diffKey);
@@ -138,17 +141,18 @@ export class AppendManager {
   }
 
   private async simplifyDiff(diffPath: string): Promise<string> {
+    this.logger.info(`simplifying osm change file by removing all duplicates`);
+
     const simplifiedDiffPath = join(DATA_DIR, `${this.current}.simplified.${DIFF_FILE_EXTENTION}`);
-    await $`${OSMIUM_PATH} merge-changes --simplify ${diffPath} --output ${simplifiedDiffPath}`;
+    await this.commandRunner.run('osmium', 'merge-changes', ['--simplify', `${diffPath}`, `--output=${simplifiedDiffPath}`]);
     return simplifiedDiffPath;
   }
 
   private fetchSequenceNumber(content: string): number {
     const matchResult = content.match(SEQUENCE_NUMBER_REGEX);
     if (matchResult === null || matchResult.length === 0) {
-      this.logger.error('error');
-      throw new Error();
-      // throw new ErrorWithExitCode(`failed to fetch sequence number out of the state file`, ExitCodes.INVALID_STATE_FILE_ERROR);
+      this.logger.error('failed to fetch sequence number out of the state file');
+      throw new InvalidStateFileError();
     }
     return parseInt(matchResult[0].split('=')[1]);
   }

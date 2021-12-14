@@ -1,61 +1,60 @@
-/* eslint-disable @typescript-eslint/naming-convention */ // due to @aws-sdk/client-s3 command arguments
 import { join } from 'path';
 import fsPromises from 'fs/promises';
 import { inject, injectable } from 'tsyringe';
-import { $ } from 'zx';
 import { Logger } from '@map-colonies/js-logger';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { DATA_DIR, OSM2PGSQL_PATH, SERVICES } from '../../common/constants';
-import { createDirectory, streamToString } from '../../common/util';
+import { DATA_DIR, DEFAULT_DUMP_NAME, SERVICES } from '../../common/constants';
+import { createDirectory, getFileDirectory, streamToString } from '../../common/util';
 import { DumpClient } from '../../httpClient/dumpClient';
+import { S3ClientWrapper } from '../../s3Client/s3Client';
+import { CommandRunner } from '../../common/commandRunner';
+import { DumpServerEmptyResponseError } from '../../common/errors';
 
 @injectable()
 export class CreateManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(SERVICES.S3) private readonly s3Client: S3Client,
-    private readonly dumpClient: DumpClient
+    private readonly s3Client: S3ClientWrapper,
+    private readonly dumpClient: DumpClient,
+    private readonly commandRunner: CommandRunner
   ) {}
 
-  public async getScriptFromS3ToFs(bucket: string, key: string): Promise<string> {
-    let scriptFileContent = '';
-    try {
-      const output = await this.s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  public async getScriptFromS3ToFs(bucket: string, scriptKey: string): Promise<string> {
+    this.logger.info(`getting script from s3 to file system`);
 
-      if (output.Body === undefined) {
-        throw Error();
-      }
+    const scriptStream = await this.s3Client.getObjectWrapper(bucket, scriptKey);
+    const scriptFileContent = await streamToString(scriptStream);
 
-      scriptFileContent = await streamToString(output.Body as NodeJS.ReadStream);
-    } catch (error) {
-      console.log(error);
-      throw new Error(error as string);
-    }
-    const localScriptPath = join(DATA_DIR, key);
-    await createDirectory(localScriptPath);
+    const localScriptPath = join(DATA_DIR, scriptKey);
+    await createDirectory(getFileDirectory(localScriptPath));
     await fsPromises.writeFile(localScriptPath, scriptFileContent);
+
     return localScriptPath;
   }
 
   public async getFromDumpServerToFs(dumpServerUrl: string): Promise<string> {
-    const dumpsResponse = await this.dumpClient.getDumpsMetadata(dumpServerUrl, { limit: 1, sort: 'desc' });
-    const latest = dumpsResponse.data[0];
-    const response = await this.dumpClient.getDump(latest.url);
-    const localDumpPath = join(DATA_DIR, `${latest.name}`);
+    this.logger.info(`getting the latest dump from dump-server`);
+
+    const dumpServerResponse = await this.dumpClient.getDumpsMetadata(dumpServerUrl, { limit: 1, sort: 'desc' });
+    if (dumpServerResponse.data.length === 0) {
+      this.logger.error(`recieved empty dumps response, url: ${dumpServerUrl}`);
+      throw new DumpServerEmptyResponseError(`recieved empty dumps response`);
+    }
+
+    const latestMetadata = dumpServerResponse.data[0];
+    return this.getDumpFromRemoteToFs(latestMetadata.url, latestMetadata.name);
+  }
+
+  public async getDumpFromRemoteToFs(url: string, name = DEFAULT_DUMP_NAME): Promise<string> {
+    this.logger.info(`getting dump from remote service`);
+
+    const response = await this.dumpClient.getDump(url);
+    const localDumpPath = join(DATA_DIR, name);
     await fsPromises.writeFile(localDumpPath, response.data, { encoding: 'binary' });
+
     return localDumpPath;
   }
 
   public async creation(scriptPath: string, dumpPath: string): Promise<void> {
-    this.logger.info('creating');
-    await $`${OSM2PGSQL_PATH} \
-            --create \
-            --slim \
-            --multi-geometry \
-            --style=${scriptPath} \
-            --cache=2500 \
-            --number-processes=2 \
-            --output=flex \
-            ${dumpPath}`;
+    await this.commandRunner.run('osm2pgsql', '--create', [`--style=${scriptPath}`, dumpPath]);
   }
 }

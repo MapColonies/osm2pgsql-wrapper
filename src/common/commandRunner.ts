@@ -1,0 +1,56 @@
+import { Logger } from '@map-colonies/js-logger';
+import { inject, injectable } from 'tsyringe';
+import { $ } from 'zx';
+import { SERVICES } from './constants';
+import { Osm2pgsqlError, OsmiumError } from './errors';
+import { IConfig, Osm2pgsqlConfig, OsmiumConfig } from './interfaces';
+import { Executable } from './types';
+
+@injectable()
+export class CommandRunner {
+  private readonly globalCommandArgs: Record<Executable, string[]> = { osm2pgsql: [], osmium: [] };
+
+  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
+    this.processConfig(config);
+  }
+
+  public async run(executable: Executable, command: string, commandArgs: string[] = []): Promise<void> {
+    this.logger.info(`preparing run of ${executable} ${command}`);
+    try {
+      const globalArgs = this.globalCommandArgs[executable];
+      const args = [command, ...globalArgs, ...commandArgs];
+      const prettyArgs = args.join(' ');
+      this.logger.debug(`running command: ${executable} ${prettyArgs}`);
+      await $`${executable} ${args}`;
+    } catch (error) {
+      const execError = error as Error;
+      this.logger.error(execError);
+      if (executable === 'osmium') {
+        throw new OsmiumError(execError.message);
+      }
+      throw new Osm2pgsqlError(execError.message);
+    }
+  }
+
+  private processConfig(config: IConfig): void {
+    const osm2pgsqlConfig = config.get<Osm2pgsqlConfig>('osm2pgsql');
+    const osm2pgsqlArgs = this.globalCommandArgs.osm2pgsql;
+
+    if (osm2pgsqlConfig.slim !== undefined && osm2pgsqlConfig.slim) {
+      osm2pgsqlArgs.push('--slim');
+    }
+    osm2pgsqlArgs.push(`--cache=${osm2pgsqlConfig.cache}`);
+    osm2pgsqlArgs.push(`--number-processes=${osm2pgsqlConfig.processes}`);
+    osm2pgsqlArgs.push(`--output=${osm2pgsqlConfig.output}`);
+    osm2pgsqlArgs.push(`--log-level=${osm2pgsqlConfig.logger.level}`);
+    osm2pgsqlArgs.push(`--log-progress=${osm2pgsqlConfig.logger.progress ? 'true' : 'false'}`);
+
+    const osmiumConfig = config.get<OsmiumConfig>('osmium');
+    const osmiumArgs = this.globalCommandArgs.osmium;
+
+    if (osmiumConfig.verbose) {
+      osmiumArgs.push('--verbose');
+    }
+    osmiumArgs.push(`${osmiumConfig.progress ? '--progress' : '--no-progress'}`);
+  }
+}

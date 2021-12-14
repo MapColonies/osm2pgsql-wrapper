@@ -43,6 +43,16 @@ env:
     url: http://localhost:55681/v1/trace
   httpClient:
     timeout: 1000
+  osm2pgsql:
+    slim: true
+    cache: 2500
+    processes: 2
+    output: flex
+    logLevel: info
+    logProgress: true
+  osmium:
+    verbose: false
+    progress: false
 
 postgres:
   host: localhost
@@ -74,8 +84,10 @@ cli:
       mountPath: '/tmp'
       fileName: 'config.json'
   create:
+    source: remote-url # local-file, remote-url or dump-server
     s3ScriptKey: script.lua
-    dumpFilePath: '/tmp/dump.pbf'
+    dumpLocalFile: '/tmp/dump.pbf'
+    dumpRemoteUrl: 'https://remote-url.com'
     dumpServerUrl: 'https://dump-server.com'
 
 configSchema: |-
