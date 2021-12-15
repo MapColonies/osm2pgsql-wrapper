@@ -41,8 +41,10 @@ export class AppendManager {
 
   public async prepareManager(id: string, entities: AppendEntity[]): Promise<void> {
     this.logger.info(`preparing environment, id: ${id}, number of entities: ${entities.length}`);
+
     this.appendId = id;
     const dir = join(DATA_DIR, id);
+    this.logger.debug(`creating directory ${dir}`);
     await createDirectory(dir);
     this.entities = entities;
   }
@@ -126,7 +128,7 @@ export class AppendManager {
     const stateKey = join(this.appendId, STATE_FILE);
     await this.s3Client.putObjectWrapper(bucket, stateKey, stateBuffer, acl);
 
-    this.logger.info(`remote state source of ${this.appendId} updated successfully, current state ${this.current}`);
+    this.logger.info(`successfully updated the remote state source of ${this.appendId}, current state ${this.current}`);
   }
 
   private async getDiffToFs(replicationUrl: string): Promise<string> {
@@ -152,7 +154,7 @@ export class AppendManager {
     const matchResult = content.match(SEQUENCE_NUMBER_REGEX);
     if (matchResult === null || matchResult.length === 0) {
       this.logger.error('failed to fetch sequence number out of the state file');
-      throw new InvalidStateFileError();
+      throw new InvalidStateFileError('could not fetch sequence number out of the state file');
     }
     return parseInt(matchResult[0].split('=')[1]);
   }

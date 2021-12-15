@@ -33,7 +33,7 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
       type: 'string',
       demandOption: true,
     })
-    .option('s3Acl', { alias: ['a', 's3-acl'], describe: 'The Acl policy for uploaded objects', nargs: 1, type: 'string', default: 'public-read' })
+    .option('s3Acl', { alias: ['a', 's3-acl'], describe: 'The Acl policy for uploaded objects', nargs: 1, type: 'string', demandOption: true })
     .help('h')
     .alias('h', 'help');
 

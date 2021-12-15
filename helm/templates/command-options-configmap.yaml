@@ -11,7 +11,7 @@ data:
   S3_ENDPOINT: {{ printf "%s://%s:%v/" .protocol .host .port | quote }}
   S3_BUCKET_NAME: {{ .bucketName | quote }}
   S3_KEY_ID: {{ .keyId | quote }}
-  S3_ACL: {{ .acl | quote | default "public-read" }}
+  S3_ACL: {{ .acl | quote }}
   {{- end }}
   COMMAND: {{ .Values.cli.command | quote }}
   {{- if eq .Values.cli.command "append" }}
@@ -19,10 +19,8 @@ data:
   REPLICATION_URL: {{ .Values.cli.append.replicationUrl | quote }}
   {{- end }}
   {{- if eq .Values.cli.command "create" }}
-  SOURCE: {{ .Values.cli.create.source | quote }}
+  DUMP_SOURCE_TYPE: {{ .Values.cli.create.dumpSourceType | quote }}
+  DUMP_SOURCE: {{ .Values.cli.create.dumpSource | quote }}
   S3_SCRIPT_KEY: {{ .Values.cli.create.s3ScriptKey | quote }}
-  DUMP_LOCAL_FILE: {{ .Values.cli.create.dumpLocalFile | quote }}
-  DUMP_REMOTE_URL: {{ .Values.cli.create.dumpRemoteUrl | quote }}
-  DUMP_SERVER_URL: {{ .Values.cli.create.dumpServerUrl | quote }}
   {{- end }}
 {{- end -}}

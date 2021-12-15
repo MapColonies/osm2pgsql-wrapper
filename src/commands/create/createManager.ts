@@ -4,7 +4,7 @@ import { inject, injectable } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { DATA_DIR, DEFAULT_DUMP_NAME, SERVICES } from '../../common/constants';
 import { createDirectory, getFileDirectory, streamToString } from '../../common/util';
-import { DumpClient } from '../../httpClient/dumpClient';
+import { DumpClient, DumpMetadataResponse } from '../../httpClient/dumpClient';
 import { S3ClientWrapper } from '../../s3Client/s3Client';
 import { CommandRunner } from '../../common/commandRunner';
 import { DumpServerEmptyResponseError } from '../../common/errors';
@@ -31,17 +31,16 @@ export class CreateManager {
     return localScriptPath;
   }
 
-  public async getFromDumpServerToFs(dumpServerUrl: string): Promise<string> {
+  public async getLatestFromDumpServer(dumpServerUrl: string): Promise<DumpMetadataResponse> {
     this.logger.info(`getting the latest dump from dump-server`);
 
     const dumpServerResponse = await this.dumpClient.getDumpsMetadata(dumpServerUrl, { limit: 1, sort: 'desc' });
     if (dumpServerResponse.data.length === 0) {
       this.logger.error(`recieved empty dumps response, url: ${dumpServerUrl}`);
-      throw new DumpServerEmptyResponseError(`recieved empty dumps response`);
+      throw new DumpServerEmptyResponseError(`recieved empty dumps response from dump-server`);
     }
 
-    const latestMetadata = dumpServerResponse.data[0];
-    return this.getDumpFromRemoteToFs(latestMetadata.url, latestMetadata.name);
+    return dumpServerResponse.data[0];
   }
 
   public async getDumpFromRemoteToFs(url: string, name = DEFAULT_DUMP_NAME): Promise<string> {

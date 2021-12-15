@@ -7,14 +7,14 @@ import { AxiosRequestArgsWithoutData, BaseClient, HttpResponse } from './baseCli
 
 const DUMP_METADATA_ENDPOINT = 'dumps';
 
-interface DumpRequestParams {
+interface DumpMetadataRequestParams {
   limit?: number;
   from?: Date;
   to?: Date;
   sort?: 'asc' | 'desc';
 }
 
-interface DumpResponse {
+export interface DumpMetadataResponse {
   id: string;
   name: string;
   timestamp: string;
@@ -28,14 +28,14 @@ export class DumpClient extends BaseClient {
     super(logger);
   }
 
-  public async getDumpsMetadata(dumpServerUrl: string, params: DumpRequestParams): Promise<HttpResponse<DumpResponse[]>> {
+  public async getDumpsMetadata(dumpServerUrl: string, params: DumpMetadataRequestParams): Promise<HttpResponse<DumpMetadataResponse[]>> {
     this.logger.info(`invoking GET to ${dumpServerUrl}/${DUMP_METADATA_ENDPOINT}`);
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
-    return this.invokeHttp<DumpResponse[], AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, DUMP_METADATA_ENDPOINT, {
+    return this.invokeHttp<DumpMetadataResponse[], AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, DUMP_METADATA_ENDPOINT, {
       baseURL: dumpServerUrl,
       params,
-      paramsSerializer: (params: DumpRequestParams) => qs.stringify(params, { indices: false }),
+      paramsSerializer: (params: DumpMetadataRequestParams) => qs.stringify(params, { indices: false }),
     });
   }
 

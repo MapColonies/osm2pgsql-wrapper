@@ -5,8 +5,10 @@ import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { Validator } from '../../validation/validator';
 import { APPEND_CONFIG_SCHEMA, AppendEntity } from '../../validation/schema';
-import { HttpUpstreamResponseError, HttpUpstreamUnavailableError, Osm2pgsqlError, OsmiumError, S3Error } from '../../common/errors';
+import { ErrorWithExitCode } from '../../common/errors';
 import { AppendManager as AppendManager } from './appendManager';
+
+let appendEntities: AppendEntity[];
 
 export interface AppendArguments extends GlobalArguments {
   config: string;
@@ -35,16 +37,17 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
       })
       .option('replicationUrl', { alias: ['r', 'replication-url'], describe: 'The replication url', nargs: 1, type: 'string', demandOption: true })
       .check(async (argv) => {
-        const { config, s3KeyId } = argv;
+        const { config } = argv;
         const validationResponse = await this.validator.validate(config, APPEND_CONFIG_SCHEMA);
 
-        if (!validationResponse.isValid) {
+        if (!validationResponse.isValid || validationResponse.content === undefined) {
           const { errors } = validationResponse;
           this.logger.error(`validation failed for ${config} with the following errors: ${errors as string}`);
           throw Error(errors);
         }
 
-        await this.manager.prepareManager(s3KeyId, validationResponse.content as AppendEntity[]);
+        appendEntities = validationResponse.content;
+
         return true;
       });
 
@@ -52,8 +55,10 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
   };
 
   public handler = async (argv: Arguments<AppendArguments>): Promise<void> => {
-    const { s3BucketName, replicationUrl, s3Acl } = argv;
+    const { s3KeyId, s3BucketName, replicationUrl, s3Acl } = argv;
     try {
+      await this.manager.prepareManager(s3KeyId, appendEntities);
+
       await this.manager.getStartSequenceNumber(s3BucketName);
 
       await this.manager.getEndSequenceNumber(replicationUrl);
@@ -69,18 +74,14 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
       // }
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
-      if (error instanceof S3Error) {
-        exitCode = ExitCodes.S3_ERROR;
-      } else if (error instanceof HttpUpstreamUnavailableError) {
-        exitCode = ExitCodes.REMOTE_SERVICE_UNAVAILABLE;
-      } else if (error instanceof HttpUpstreamResponseError) {
-        exitCode = ExitCodes.REMOTE_SERVICE_RESPONSE_ERROR;
-      } else if (error instanceof Osm2pgsqlError) {
-        exitCode = ExitCodes.OSM2PGSQL_ERROR;
-      } else if (error instanceof OsmiumError) {
-        exitCode = ExitCodes.OSMIUM_ERROR;
+      if (error instanceof ErrorWithExitCode) {
+        exitCode = error.exitCode;
+      } else {
+        this.logger.error((error as Error).message);
       }
+
       container.register(EXIT_CODE, { useValue: exitCode });
+      this.logger.warn(`an error occurred, exiting with exit code ${exitCode}`);
     }
   };
 }

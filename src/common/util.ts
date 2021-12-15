@@ -20,7 +20,7 @@ export const createDirectory = async (dir: string): Promise<void> => {
   if (fs.existsSync(dir)) {
     return;
   }
-  await fsPromises.mkdir(dir, { recursive: true }).catch((e) => console.log(e));
+  await fsPromises.mkdir(dir, { recursive: true });
 };
 
 export const isStringEmptyOrUndefined = (input: string | undefined): boolean => {

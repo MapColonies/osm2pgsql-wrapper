@@ -66,7 +66,6 @@ postgres:
     mountPath: '/tmp/certs-postgres'
 
 s3:
-  #TODO: should have projectId?
   accessKey: accessKey
   secretKey: secret
   protocol: http
@@ -74,7 +73,7 @@ s3:
   port: 9000
   bucketName: osm2pgsql
   keyId: someId
-  # acl: public-read
+  acl: private
 
 cli:
   command: 'create' # create or append
@@ -84,11 +83,9 @@ cli:
       mountPath: '/tmp'
       fileName: 'config.json'
   create:
-    source: remote-url # local-file, remote-url or dump-server
+    dumpSourceType: remote-url # local-file, remote-url or dump-server
+    dumpSource: 'https://remote-url.com'
     s3ScriptKey: script.lua
-    dumpLocalFile: '/tmp/dump.pbf'
-    dumpRemoteUrl: 'https://remote-url.com'
-    dumpServerUrl: 'https://dump-server.com'
 
 configSchema: |-
   [

@@ -16,12 +16,6 @@ data:
   POSTGRES_CERTS_MOUNT_PATH: {{ .sslAuth.mountPath | quote }}
   {{- end }}
   {{- end }}
-  {{- with .Values.s3 }}
-  S3_ENDPOINT: {{ printf "%s://%s:%v/" .protocol .host .port | quote }}
-  S3_BUCKET_NAME: {{ .bucketName | quote }}
-  S3_KEY_ID: {{ .keyId | quote }}
-  S3_ACL: {{ .acl | quote | default "public-read" }}
-  {{- end }}
   LOG_LEVEL: {{ .Values.env.logLevel | quote }}
   LOG_PRETTY_PRINT_ENABLED: {{ .Values.env.logPrettyPrintEnabled | quote | default "false" }}
   {{ if .Values.env.tracing.enabled }}
@@ -31,24 +25,12 @@ data:
   TELEMETRY_TRACING_ENABLED: "false"
   {{- end }}
   HTTP_CLIENT_TIMEOUT: {{ .Values.env.httpClient.timeout | quote }}
-  {{ if .Values.env.osm2pgsql.slim }}
-  OSM2PGSQL_SLIM: "true"
-  {{- else }}
-  OSM2PGSQL_SLIM: "false"
-  {{- end }}
+  OSM2PGSQL_SLIM: {{ .Values.env.osm2pgsql.slim | quote}}
   OSM2PGSQL_CACHE: {{ .Values.env.osm2pgsql.processes | quote }}
   OSM2PGSQL_PROCESSES: {{ .Values.env.osm2pgsql.processes | quote }}
   OSM2PGSQL_OUTPUT: {{ .Values.env.osm2pgsql.output | quote }}
   OSM2PGSQL_LOG_LEVEL: {{ .Values.env.osm2pgsql.logLevel | quote }}
   OSM2PGSQL_LOG_PROGRESS: {{ .Values.env.osm2pgsql.logProgress | quote }}
-  {{ if .Values.env.osmium.verbose }}
-  OSMIUM_VERBOSE: "true"
-  {{- else }}
-  OSMIUM_VERBOSE: "false"
-  {{- end }}
-  {{ if .Values.env.osmium.progress }}
-  OSMIUM_PROGRESS: "true"
-  {{- else }}
-  OSMIUM_PROGRESS: "false"
-  {{- end }}
+  OSMIUM_VERBOSE: {{ .Values.env.osmium.verbose | quote }}
+  OSMIUM_PROGRESS: {{ .Values.env.osmium.progress | quote }}
 {{- end -}}

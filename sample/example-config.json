@@ -8,7 +8,7 @@
     }
   },
   {
-    "id": "ways",
+    "id": "pois",
     "script": "sub-simple-pois.lua",
     "zoomLevel": {
       "min": 4,
