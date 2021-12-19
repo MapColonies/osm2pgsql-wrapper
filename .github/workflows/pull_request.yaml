@@ -56,6 +56,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: build Docker image
-        run: docker build -t test-build:latest .
-        with:
-          build-args: NODE_VERSION=${{ matrix.node }}
+        run: docker build -t test-build:latest --build-arg NODE_VERSION .
+        env:
+          NODE_VERSION: ${{ matrix.node }}
