@@ -10,6 +10,7 @@ export interface Osm2pgsqlConfig {
   cache: number;
   processes: number;
   output: OutputType;
+  expireOutput: boolean;
   logger: {
     level: LogLevel;
     progress: boolean;

@@ -9,8 +9,8 @@ import { CreateCommand } from './commands/create/create';
 export interface GlobalArguments {
   s3Endpoint: string;
   s3BucketName: string;
-  s3KeyId: string;
   s3Acl: string;
+  projectId: string;
 }
 
 export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) => {
@@ -21,19 +21,19 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
     .option('s3Endpoint', { alias: ['e', 's3-endpoint'], describe: 'The s3 endpoint', nargs: 1, type: 'string', demandOption: true })
     .option('s3BucketName', {
       alias: ['b', 's3-bucket-name'],
-      describe: 'The bucket name containing the state and script',
+      describe: 'The bucket name containing the state and the lua script',
       nargs: 1,
       type: 'string',
       demandOption: true,
     })
-    .option('s3KeyId', {
-      alias: ['k', 's3-key-id'],
-      describe: 'The unique id for the state and script keys',
+    .option('projectId', {
+      alias: ['p', 'project-id'],
+      describe: 'The unique project id used as s3 object prefix for the state and lua scripts',
       nargs: 1,
       type: 'string',
       demandOption: true,
     })
-    .option('s3Acl', { alias: ['a', 's3-acl'], describe: 'The Acl policy for uploaded objects', nargs: 1, type: 'string', demandOption: true })
+    .option('s3Acl', { alias: ['a', 's3-acl'], describe: 'The canned acl policy for uploaded objects', nargs: 1, type: 'string', demandOption: true })
     .help('h')
     .alias('h', 'help');
 

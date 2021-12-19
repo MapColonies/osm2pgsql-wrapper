@@ -5,6 +5,5 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-{{ $chartName }}-schema-configmap
 data:
-  {{ .Values.cli.append.config.fileName }}: |-
-{{ .Values.configSchema | indent 4 }}
+  {{ .Values.cli.append.config.fileName }}: {{ .Files.Get "config/append-config.json" | quote }}
 {{- end }}

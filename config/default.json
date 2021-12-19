@@ -17,13 +17,14 @@
     "cache": 2500,
     "processes": 2,
     "output": "flex",
+    "generateExpireOutput": true,
     "logger": {
       "level": "debug",
       "progress": true
     }
   },
   "osmium": {
-    "verbose": false,
-    "progress": false
+    "verbose": true,
+    "progress": true
   }
 }

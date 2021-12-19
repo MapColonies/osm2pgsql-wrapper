@@ -38,6 +38,10 @@
       "__format": "number"
     },
     "output": "OSM2PGSQL_OUTPUT",
+    "generateExpireOutput": {
+      "__name": "OSM2PGSQL_GENERATE_EXPIRE_OUTPUT",
+      "__format": "boolean"
+    },
     "logger": {
       "level": "OSM2PGSQL_LOG_LEVEL",
       "progress": {

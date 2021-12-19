@@ -2,6 +2,7 @@ import { join } from 'path';
 import fsPromises from 'fs/promises';
 import { inject, injectable } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
+import { IConfig } from '../../common/interfaces';
 import {
   DATA_DIR,
   SERVICES,
@@ -13,15 +14,16 @@ import {
   DIFF_FILE_EXTENTION,
   STATE_FILE,
   EXPIRE_LIST,
-  SEQUENCE_NUMBER_PAD_AMOUNT,
+  SEQUENCE_NUMBER_PADDING_AMOUNT,
 } from '../../common/constants';
 import { createDirectory, getFileDirectory, removeDuplicates, streamToString } from '../../common/util';
 import { ReplicationClient } from '../../httpClient/replicationClient';
 import { AppendEntity } from '../../validation/schema';
 import { S3ClientWrapper } from '../../s3Client/s3Client';
 import { CommandRunner } from '../../common/commandRunner';
-import { InvalidStateFileError } from '../../common/errors';
+import { InvalidStateFileError, OsmiumError, Osm2pgsqlError } from '../../common/errors';
 
+// TODO: upload list from config
 let stateContent: string;
 
 @injectable()
@@ -29,24 +31,29 @@ export class AppendManager {
   private start = DEFAULT_SEQUENCE_NUMBER;
   private end = DEFAULT_SEQUENCE_NUMBER;
   private current = DEFAULT_SEQUENCE_NUMBER;
-  private appendId = '';
+  private projectId = '';
   private entities: AppendEntity[] = [];
+  private readonly shouldGenerateExpireOutput: boolean;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
+    @inject(SERVICES.CONFIG) private readonly config: IConfig,
     private readonly s3Client: S3ClientWrapper,
     private readonly replicationClient: ReplicationClient,
     private readonly commandRunner: CommandRunner
-  ) {}
+  ) {
+    this.shouldGenerateExpireOutput = config.get<boolean>('osm2pgsql.generateExpireOutput');
+  }
 
-  public async prepareManager(id: string, entities: AppendEntity[]): Promise<void> {
-    this.logger.info(`preparing environment, id: ${id}, number of entities: ${entities.length}`);
+  public async prepareManager(projectId: string, entities: AppendEntity[]): Promise<void> {
+    this.logger.info(`preparing environment, project id: ${projectId}, number of entities: ${entities.length}`);
 
-    this.appendId = id;
-    const dir = join(DATA_DIR, id);
+    this.entities = entities;
+    this.projectId = projectId;
+    const dir = join(DATA_DIR, projectId);
+
     this.logger.debug(`creating directory ${dir}`);
     await createDirectory(dir);
-    this.entities = entities;
   }
 
   public isUpToDate(): boolean {
@@ -56,7 +63,7 @@ export class AppendManager {
   public async getStartSequenceNumber(bucket: string): Promise<void> {
     this.logger.info(`getting the start sequence number from bucket`);
 
-    const stateKey = join(this.appendId, STATE_FILE);
+    const stateKey = join(this.projectId, STATE_FILE);
     const stateStream = await this.s3Client.getObjectWrapper(bucket, stateKey);
     stateContent = await streamToString(stateStream);
     this.start = this.fetchSequenceNumber(stateContent);
@@ -74,10 +81,10 @@ export class AppendManager {
     this.logger.info(`end sequence number ${this.end}`);
   }
 
-  public async getScripts(bucket: string): Promise<void> {
+  public async getScriptsFromS3ToFs(bucket: string): Promise<void> {
     this.logger.info(`getting scripts from bucket to file system`);
 
-    const scriptsKeys = removeDuplicates(this.entities.map((entity) => join(this.appendId, entity.script)));
+    const scriptsKeys = removeDuplicates(this.entities.map((entity) => join(this.projectId, entity.script)));
 
     const getScriptPromises = scriptsKeys.map(async (scriptKey) => {
       const scriptStream = await this.s3Client.getObjectWrapper(bucket, scriptKey);
@@ -91,44 +98,74 @@ export class AppendManager {
   }
 
   public async appendReplications(replicationUrl: string, bucket: string, acl: string): Promise<void> {
-    this.logger.info(`${this.appendId} current sequence number ${this.current}`);
+    this.logger.info(`${this.projectId} current sequence number ${this.current}`);
 
     const diffPath = await this.getDiffToFs(replicationUrl);
 
     const simplifiedDiffPath = await this.simplifyDiff(diffPath);
 
     const appendPromises = this.entities.map(async (entity) => {
-      const localScriptPath = join(DATA_DIR, this.appendId, entity.script);
-      const expireTilesZoom = this.zoomLevelsToRange(entity.zoomLevel.min, entity.zoomLevel.max);
-      const expireTilesFileName = `${entity.id}.${this.current}.${EXPIRE_LIST}`;
-      const localExpireTilesListPath = join(DATA_DIR, this.appendId, expireTilesFileName);
-
-      this.logger.info(`initializing the append of ${entity.id}`);
-
-      await this.commandRunner.run('osm2pgsql', '--append', [
-        `--style=${localScriptPath}`,
-        simplifiedDiffPath,
-        `--expire-tiles=${expireTilesZoom}`,
-        `--expire-output=${localExpireTilesListPath}`,
-      ]);
-
-      this.logger.info(`appending completed for ${entity.id}, uploading expire list`);
-
-      const expireListKey = join(this.appendId, entity.id, this.current.toString(), EXPIRE_LIST);
-      const expireTilesListContent = await fsPromises.readFile(localExpireTilesListPath);
-      await this.s3Client.putObjectWrapper(bucket, expireListKey, expireTilesListContent, acl);
+      await this.appendEntity(entity, simplifiedDiffPath, bucket, acl);
     });
 
     await Promise.all(appendPromises);
 
-    this.logger.info(`all appends completed successfuly for state ${this.current}, updating remote state source`);
+    this.logger.info(`all appends completed successfuly for state ${this.current}`);
+
+    await this.updateRemoteState(bucket, acl);
+
+    this.logger.info(`successfully updated the remote state source of ${this.projectId}, current state ${this.current}`);
+  }
+
+  private async appendEntity(entity: AppendEntity, diffPath: string, bucket: string, acl: string): Promise<void> {
+    const appendArgs = [];
+
+    const localScriptPath = join(DATA_DIR, this.projectId, entity.script);
+    appendArgs.push(`--style=${localScriptPath}`);
+
+    const expireTilesZoom = this.zoomLevelsToRange(entity.zoomLevel.min, entity.zoomLevel.max);
+    appendArgs.push(`--expire-tiles=${expireTilesZoom}`);
+
+    if (this.shouldGenerateExpireOutput) {
+      const expireTilesFileName = `${entity.id}.${this.current}.${EXPIRE_LIST}`;
+      const localExpireTilesListPath = join(DATA_DIR, this.projectId, expireTilesFileName);
+      appendArgs.push(`--expire-output=${localExpireTilesListPath}`);
+    }
+
+    this.logger.info(`initializing the append of ${entity.id} on zoom levels ${expireTilesZoom}`);
+
+    const executable = 'osm2pgsql';
+    const { exitCode } = await this.commandRunner.run(executable, '--append', [...appendArgs, diffPath]);
+
+    if (exitCode !== 0) {
+      this.logger.error(`${executable} exit with code ${exitCode as number}`);
+      throw new Osm2pgsqlError(`an error occurred while running osm2pgsql, exit code ${exitCode as number}`);
+    }
+
+    this.logger.info(`appending completed for ${entity.id}`);
+
+    if (this.shouldGenerateExpireOutput) {
+      await this.uploadExpireList(entity.id, bucket, acl);
+    }
+  }
+
+  private async uploadExpireList(entityId: string, bucket: string, acl: string): Promise<void> {
+    this.logger.info(`uploading expire list of entity ${entityId}`);
+
+    const expireTilesFileName = `${entityId}.${this.current}.${EXPIRE_LIST}`;
+    const localExpireTilesListPath = join(DATA_DIR, this.projectId, expireTilesFileName);
+    const expireTilesListContent = await fsPromises.readFile(localExpireTilesListPath);
+    const expireListKey = join(this.projectId, entityId, this.current.toString(), EXPIRE_LIST);
+    await this.s3Client.putObjectWrapper(bucket, expireListKey, expireTilesListContent, acl);
+  }
+
+  private async updateRemoteState(bucket: string, acl: string): Promise<void> {
+    this.logger.info(`updating remote state from ${this.current} to ${this.current + 1}`);
 
     stateContent = stateContent.replace(SEQUENCE_NUMBER_REGEX, `sequenceNumber=${++this.current}`);
     const stateBuffer = Buffer.from(stateContent, 'utf-8');
-    const stateKey = join(this.appendId, STATE_FILE);
+    const stateKey = join(this.projectId, STATE_FILE);
     await this.s3Client.putObjectWrapper(bucket, stateKey, stateBuffer, acl);
-
-    this.logger.info(`successfully updated the remote state source of ${this.appendId}, current state ${this.current}`);
   }
 
   private async getDiffToFs(replicationUrl: string): Promise<string> {
@@ -146,7 +183,12 @@ export class AppendManager {
     this.logger.info(`simplifying osm change file by removing all duplicates`);
 
     const simplifiedDiffPath = join(DATA_DIR, `${this.current}.simplified.${DIFF_FILE_EXTENTION}`);
-    await this.commandRunner.run('osmium', 'merge-changes', ['--simplify', `${diffPath}`, `--output=${simplifiedDiffPath}`]);
+    const executable = 'osmium';
+    const { exitCode } = await this.commandRunner.run(executable, 'merge-changes', ['--simplify', `${diffPath}`, `--output=${simplifiedDiffPath}`]);
+    if (exitCode !== 0) {
+      this.logger.error(`${executable} exit with code ${exitCode as number}`);
+      throw new OsmiumError(`an error occurred while running ${executable}, exit code ${exitCode as number}`);
+    }
     return simplifiedDiffPath;
   }
 
@@ -165,7 +207,7 @@ export class AppendManager {
     const state = sequenceNumber % DIFF_STATE_FILE_MODULO;
     return [top, bottom, state].map((component: number) => {
       const floored = Math.floor(component);
-      return floored.toString().padStart(SEQUENCE_NUMBER_PAD_AMOUNT, '0');
+      return floored.toString().padStart(SEQUENCE_NUMBER_PADDING_AMOUNT, '0');
     });
   };
 

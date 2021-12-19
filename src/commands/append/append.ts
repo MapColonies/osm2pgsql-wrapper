@@ -9,10 +9,12 @@ import { ErrorWithExitCode } from '../../common/errors';
 import { AppendManager as AppendManager } from './appendManager';
 
 let appendEntities: AppendEntity[];
+let remainingAppends: number | undefined;
 
 export interface AppendArguments extends GlobalArguments {
   config: string;
   replicationUrl: string;
+  limit?: number;
 }
 
 @injectable()
@@ -36,6 +38,7 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
         demandOption: true,
       })
       .option('replicationUrl', { alias: ['r', 'replication-url'], describe: 'The replication url', nargs: 1, type: 'string', demandOption: true })
+      .option('limit', { alias: 'l', describe: 'Limit the number of appends per run', nargs: 1, type: 'number' })
       .check(async (argv) => {
         const { config } = argv;
         const validationResponse = await this.validator.validate(config, APPEND_CONFIG_SCHEMA);
@@ -55,23 +58,39 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
   };
 
   public handler = async (argv: Arguments<AppendArguments>): Promise<void> => {
-    const { s3KeyId, s3BucketName, replicationUrl, s3Acl } = argv;
+    const { projectId, s3BucketName, replicationUrl, s3Acl, limit } = argv;
+
+    remainingAppends = limit;
+
     try {
-      await this.manager.prepareManager(s3KeyId, appendEntities);
+      await this.manager.prepareManager(projectId, appendEntities);
 
       await this.manager.getStartSequenceNumber(s3BucketName);
 
       await this.manager.getEndSequenceNumber(replicationUrl);
 
       if (this.manager.isUpToDate()) {
-        this.logger.info(`state is up to date, there is nothing to append.`);
+        this.logger.info(`state is up to date, there is nothing to append`);
         return;
       }
 
-      await this.manager.getScripts(s3BucketName);
-      // while (!this.manager.isUpToDate()) {
-      await this.manager.appendReplications(replicationUrl, s3BucketName, s3Acl);
-      // }
+      await this.manager.getScriptsFromS3ToFs(s3BucketName);
+
+      while (!this.manager.isUpToDate()) {
+        if (remainingAppends !== undefined && remainingAppends === 0) {
+          this.logger.info(`append limitation of ${limit as number} has reached`);
+          break;
+        }
+
+        await this.manager.appendReplications(replicationUrl, s3BucketName, s3Acl);
+
+        if (remainingAppends !== undefined) {
+          this.logger.info(`append number ${(limit as number) - remainingAppends + 1} out of ${limit as number} has finished`);
+          remainingAppends--;
+        }
+      }
+
+      this.logger.info(`successfully appended ${projectId}`);
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
       if (error instanceof ErrorWithExitCode) {

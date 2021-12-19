@@ -18,7 +18,7 @@ enum DumpSourceType {
 export interface CreateArguments extends GlobalArguments {
   dumpSourceType: DumpSourceType;
   dumpSource: string;
-  s3ScriptKey: string;
+  s3LuaScriptKey: string;
 }
 
 @injectable()
@@ -46,7 +46,13 @@ export class CreateCommand implements CommandModule<GlobalArguments, CreateArgum
         type: 'string',
         demandOption: true,
       })
-      .option('s3ScriptKey', { alias: ['l', 's3-lua-script-key'], describe: 'The lua script key', nargs: 1, type: 'string', demandOption: true })
+      .option('s3LuaScriptKey', {
+        alias: ['l', 's3-lua-script-key'],
+        describe: 'The lua script key in s3',
+        nargs: 1,
+        type: 'string',
+        demandOption: true,
+      })
       .check((argv) => {
         const { dumpSourceType, dumpSource } = argv;
 
@@ -66,8 +72,8 @@ export class CreateCommand implements CommandModule<GlobalArguments, CreateArgum
   };
 
   public handler = async (argv: Arguments<CreateArguments>): Promise<void> => {
-    const { s3KeyId, s3ScriptKey, s3BucketName, dumpSourceType, dumpSource } = argv;
-    const scriptKey = join(s3KeyId, s3ScriptKey);
+    const { projectId, s3LuaScriptKey, s3BucketName, dumpSourceType, dumpSource } = argv;
+    const scriptKey = join(projectId, s3LuaScriptKey);
 
     try {
       const localScriptPath = await this.manager.getScriptFromS3ToFs(s3BucketName, scriptKey);
@@ -75,15 +81,14 @@ export class CreateCommand implements CommandModule<GlobalArguments, CreateArgum
       let localDumpPath = dumpSource;
 
       if (dumpSourceType !== DumpSourceType.LOCAL_FILE) {
-        let remoteDumpUrl = dumpSource;
-        if (dumpSourceType === DumpSourceType.DUMP_SERVER) {
-          const { url } = await this.manager.getLatestFromDumpServer(dumpSource);
-          remoteDumpUrl = url;
-        }
+        const remoteDumpUrl =
+          dumpSourceType === DumpSourceType.DUMP_SERVER ? (await this.manager.getLatestFromDumpServer(dumpSource)).url : dumpSource;
         localDumpPath = await this.manager.getDumpFromRemoteToFs(remoteDumpUrl);
       }
 
       await this.manager.creation(localScriptPath, localDumpPath);
+
+      this.logger.info(`successfully created ${projectId}`);
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
       if (error instanceof ErrorWithExitCode) {

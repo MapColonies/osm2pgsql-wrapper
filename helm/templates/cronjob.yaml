@@ -3,7 +3,7 @@
 {{- $cloudProviderFlavor := include "osm2pgsql-wrapper.cloudProviderFlavor" . -}}
 {{- $cloudProviderDockerRegistryUrl := include "osm2pgsql-wrapper.cloudProviderDockerRegistryUrl" . -}}
 {{- $tag := include "osm2pgsql-wrapper.tag" . -}}
-{{- if .Values.enabled -}}
+{{- if and (.Values.enabled) (.Values.cron.enabled) -}}
 apiVersion: {{ .Values.cron.apiVersion | quote }}
 kind: CronJob
 metadata:
@@ -34,6 +34,8 @@ spec:
               {{- end }}
               {{- end }}
               imagePullPolicy: {{ .pullPolicy }}
+              args:
+                - {{ .Values.cli.command }}
               envFrom:
                 - configMapRef:
                     name: {{ $releaseName }}-{{ $chartName }}-configmap
