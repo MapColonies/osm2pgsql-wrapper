@@ -90,7 +90,7 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
         }
       }
 
-      this.logger.info(`successfully appended ${projectId}`);
+      this.logger.info(`successfully appended ${projectId} from ${this.manager.start} to ${this.manager.current - 1}`);
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
       if (error instanceof ErrorWithExitCode) {

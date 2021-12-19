@@ -28,9 +28,9 @@ let stateContent: string;
 
 @injectable()
 export class AppendManager {
-  private start = DEFAULT_SEQUENCE_NUMBER;
-  private end = DEFAULT_SEQUENCE_NUMBER;
-  private current = DEFAULT_SEQUENCE_NUMBER;
+  public start = DEFAULT_SEQUENCE_NUMBER;
+  public end = DEFAULT_SEQUENCE_NUMBER;
+  public current = DEFAULT_SEQUENCE_NUMBER;
   private projectId = '';
   private entities: AppendEntity[] = [];
   private readonly shouldGenerateExpireOutput: boolean;
@@ -67,7 +67,7 @@ export class AppendManager {
     const stateStream = await this.s3Client.getObjectWrapper(bucket, stateKey);
     stateContent = await streamToString(stateStream);
     this.start = this.fetchSequenceNumber(stateContent);
-    this.current = this.start;
+    this.current = this.start + 1;
 
     this.logger.info(`start sequence number ${this.start}`);
   }
@@ -162,10 +162,11 @@ export class AppendManager {
   private async updateRemoteState(bucket: string, acl: string): Promise<void> {
     this.logger.info(`updating remote state from ${this.current} to ${this.current + 1}`);
 
-    stateContent = stateContent.replace(SEQUENCE_NUMBER_REGEX, `sequenceNumber=${++this.current}`);
+    stateContent = stateContent.replace(SEQUENCE_NUMBER_REGEX, `sequenceNumber=${this.current}`);
     const stateBuffer = Buffer.from(stateContent, 'utf-8');
     const stateKey = join(this.projectId, STATE_FILE);
     await this.s3Client.putObjectWrapper(bucket, stateKey, stateBuffer, acl);
+    this.current++;
   }
 
   private async getDiffToFs(replicationUrl: string): Promise<string> {
