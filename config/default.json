@@ -1,8 +1,8 @@
 {
   "telemetry": {
     "logger": {
-      "level": "debug",
-      "prettyPrint": true
+      "level": "info",
+      "prettyPrint": false
     },
     "tracing": {
       "enabled": false,
@@ -19,12 +19,12 @@
     "output": "flex",
     "generateExpireOutput": true,
     "logger": {
-      "level": "debug",
+      "level": "info",
       "progress": true
     }
   },
   "osmium": {
-    "verbose": true,
-    "progress": true
+    "verbose": false,
+    "progress": false
   }
 }

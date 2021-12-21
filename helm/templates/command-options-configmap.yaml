@@ -10,21 +10,19 @@ data:
   {{- with .Values.s3 }}
   S3_ENDPOINT: {{ printf "%s://%s:%v/" .protocol .host .port | quote }}
   S3_BUCKET_NAME: {{ .bucketName | quote }}
-  S3_ACL: {{ .acl | quote }}
-  PROJECT_ID: {{ .projectId | quote }}
+  S3_PROJECT_ID: {{ .projectId | quote }}
   {{- end }}
-  {{- with .Values.cli }}
-  {{- if eq .command "append" }}
-  CONFIG: {{ printf "%s/%s" .append.config.mountPath .append.config.fileName | quote }}
-  {{- if .append.limit.enabled }}
-  LIMIT: {{ .append.limit.value | quote }}
+  {{- if eq .Values.cli.command "append" }}
+  S3_ACL: {{ .Values.s3.acl | quote }}
+  CONFIG: {{ printf "%s/%s" .Values.cli.append.config.mountPath .Values.cli.append.config.fileName | quote }}
+  {{- if .Values.cli.append.limit.enabled }}
+  LIMIT: {{ .Values.cli.append.limit.value | quote }}
   {{- end }}
-  REPLICATION_URL: {{ .append.replicationUrl | quote }}
+  REPLICATION_URL: {{ .Values.cli.append.replicationUrl | quote }}
   {{- end }}
-  {{- if eq .command "create" }}
-  DUMP_SOURCE_TYPE: {{ .create.dumpSourceType | quote }}
-  DUMP_SOURCE: {{ .create.dumpSource | quote }}
-  S3_LUA_SCRIPT_KEY: {{ .create.s3LuaScriptKey | quote }}
-  {{- end }}
+  {{- if eq .Values.cli.command "create" }}
+  DUMP_SOURCE_TYPE: {{ .Values.cli.create.dumpSourceType | quote }}
+  DUMP_SOURCE: {{ .Values.cli.create.dumpSource | quote }}
+  S3_LUA_SCRIPT_KEY: {{ .Values.cli.create.s3LuaScriptKey | quote }}
   {{- end }}
 {{- end -}}

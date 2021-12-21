@@ -9,8 +9,7 @@ import { CreateCommand } from './commands/create/create';
 export interface GlobalArguments {
   s3Endpoint: string;
   s3BucketName: string;
-  s3Acl: string;
-  projectId: string;
+  s3ProjectId: string;
 }
 
 export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) => {
@@ -26,14 +25,13 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
       type: 'string',
       demandOption: true,
     })
-    .option('projectId', {
-      alias: ['p', 'project-id'],
+    .option('s3ProjectId', {
+      alias: ['p', 's3-project-id', 'project-id'],
       describe: 'The unique project id used as s3 object prefix for the state and lua scripts',
       nargs: 1,
       type: 'string',
       demandOption: true,
     })
-    .option('s3Acl', { alias: ['a', 's3-acl'], describe: 'The canned acl policy for uploaded objects', nargs: 1, type: 'string', demandOption: true })
     .help('h')
     .alias('h', 'help');
 

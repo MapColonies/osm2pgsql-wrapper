@@ -72,8 +72,8 @@ export class CreateCommand implements CommandModule<GlobalArguments, CreateArgum
   };
 
   public handler = async (argv: Arguments<CreateArguments>): Promise<void> => {
-    const { projectId, s3LuaScriptKey, s3BucketName, dumpSourceType, dumpSource } = argv;
-    const scriptKey = join(projectId, s3LuaScriptKey);
+    const { s3ProjectId, s3LuaScriptKey, s3BucketName, dumpSourceType, dumpSource } = argv;
+    const scriptKey = join(s3ProjectId, s3LuaScriptKey);
 
     try {
       const localScriptPath = await this.manager.getScriptFromS3ToFs(s3BucketName, scriptKey);
@@ -88,7 +88,7 @@ export class CreateCommand implements CommandModule<GlobalArguments, CreateArgum
 
       await this.manager.creation(localScriptPath, localDumpPath);
 
-      this.logger.info(`successfully created ${projectId}`);
+      this.logger.info(`successfully created ${s3ProjectId}`);
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
       if (error instanceof ErrorWithExitCode) {

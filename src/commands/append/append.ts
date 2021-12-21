@@ -14,13 +14,14 @@ let remainingAppends: number | undefined;
 export interface AppendArguments extends GlobalArguments {
   config: string;
   replicationUrl: string;
+  s3Acl: string;
   limit?: number;
 }
 
 @injectable()
 export class AppendCommand implements CommandModule<GlobalArguments, AppendArguments> {
   public command = 'append';
-  public describe = 'append an osm change file to existing database';
+  public describe = 'update existing database from an osm change file';
 
   public constructor(
     @inject(delay(() => AppendManager)) private readonly manager: AppendManager,
@@ -39,6 +40,7 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
       })
       .option('replicationUrl', { alias: ['r', 'replication-url'], describe: 'The replication url', nargs: 1, type: 'string', demandOption: true })
       .option('limit', { alias: 'l', describe: 'Limit the number of appends per run', nargs: 1, type: 'number' })
+      .option('s3Acl', { alias: ['a', 's3-acl'], describe: 'The canned acl policy for uploaded objects', nargs: 1, type: 'string', demandOption: true })
       .check(async (argv) => {
         const { config } = argv;
         const validationResponse = await this.validator.validate(config, APPEND_CONFIG_SCHEMA);
@@ -58,12 +60,12 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
   };
 
   public handler = async (argv: Arguments<AppendArguments>): Promise<void> => {
-    const { projectId, s3BucketName, replicationUrl, s3Acl, limit } = argv;
+    const { s3ProjectId, s3BucketName, replicationUrl, s3Acl, limit } = argv;
 
     remainingAppends = limit;
 
     try {
-      await this.manager.prepareManager(projectId, appendEntities);
+      await this.manager.prepareManager(s3ProjectId, appendEntities);
 
       await this.manager.getStartSequenceNumber(s3BucketName);
 
@@ -90,7 +92,7 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
         }
       }
 
-      this.logger.info(`successfully appended ${projectId} from ${this.manager.start} to ${this.manager.current - 1}`);
+      this.logger.info(`successfully appended ${s3ProjectId} from ${this.manager.start} to ${this.manager.current - 1}`);
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
       if (error instanceof ErrorWithExitCode) {

@@ -18,14 +18,14 @@ image:
   pullPolicy: Always
 
 job:
-  enabled: false
+  enabled: true
   apiVersion: 'batch/v1' # depends on openshift version batch/v1 or batch/v1beta1
   restartPolicy: OnFailure
   ttlSecondsAfterFinished: 60
   backoffLimit: 6
 
 cron:
-  enabled: true
+  enabled: false
   apiVersion: 'batch/v1' # depends on openshift version batch/v1 or batch/v1beta1
   restartPolicy: OnFailure
   schedule: '* * * * *'
@@ -90,7 +90,7 @@ cli:
     replicationUrl: 'https://planet.openstreetmap.org/replication/minute'
     limit:
       enabled: false
-      # value: 10
+      value: 10
     config:
       mountPath: '/tmp'
       fileName: 'config.json'
