@@ -40,7 +40,13 @@ export class AppendCommand implements CommandModule<GlobalArguments, AppendArgum
       })
       .option('replicationUrl', { alias: ['r', 'replication-url'], describe: 'The replication url', nargs: 1, type: 'string', demandOption: true })
       .option('limit', { alias: 'l', describe: 'Limit the number of appends per run', nargs: 1, type: 'number' })
-      .option('s3Acl', { alias: ['a', 's3-acl'], describe: 'The canned acl policy for uploaded objects', nargs: 1, type: 'string', demandOption: true })
+      .option('s3Acl', {
+        alias: ['a', 's3-acl'],
+        describe: 'The canned acl policy for uploaded objects',
+        nargs: 1,
+        type: 'string',
+        demandOption: true,
+      })
       .check(async (argv) => {
         const { config } = argv;
         const validationResponse = await this.validator.validate(config, APPEND_CONFIG_SCHEMA);
