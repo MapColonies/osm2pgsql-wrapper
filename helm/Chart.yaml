@@ -1,0 +1,6 @@
+apiVersion: v2
+name: osm2pgsql-wrapper
+description: A Helm chart for osm2pgsql-wrapper cron job
+type: application
+version: 1.0.0
+appVersion: 1.0.0
