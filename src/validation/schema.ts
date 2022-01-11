@@ -12,7 +12,6 @@ export interface AppendEntity {
   };
 }
 
-// TODO add exclusiveMinimum: { $data: '1/min' }
 export const APPEND_CONFIG_SCHEMA: JSONSchemaType<AppendEntity[]> = {
   type: 'array',
   items: {

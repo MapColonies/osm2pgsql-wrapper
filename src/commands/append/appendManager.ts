@@ -23,7 +23,6 @@ import { S3ClientWrapper } from '../../s3Client/s3Client';
 import { CommandRunner } from '../../common/commandRunner';
 import { InvalidStateFileError, OsmiumError, Osm2pgsqlError } from '../../common/errors';
 
-// TODO: upload list from config
 let stateContent: string;
 
 @injectable()
