@@ -1,0 +1,63 @@
+{
+  "telemetry": {
+    "serviceName": "TELEMETRY_SERVICE_NAME",
+    "hostname": "TELEMETRY_HOST_NAME",
+    "version": "TELEMETRY_SERVICE_VERSION",
+    "logger": {
+      "level": "LOG_LEVEL",
+      "prettyPrint": {
+        "__name": "LOG_PRETTY_PRINT_ENABLED",
+        "__format": "boolean"
+      }
+    },
+    "tracing": {
+      "enabled": {
+        "__name": "TELEMETRY_TRACING_ENABLED",
+        "__format": "boolean"
+      },
+      "url": "TELEMETRY_TRACING_URL"
+    }
+  },
+  "httpClient": {
+    "timeout": {
+      "__name": "HTTP_CLIENT_TIMEOUT",
+      "__format": "number"
+    }
+  },
+  "osm2pgsql": {
+    "slim": {
+      "__name": "OSM2PGSQL_SLIM",
+      "__format": "boolean"
+    },
+    "cache": {
+      "__name": "OSM2PGSQL_CACHE",
+      "__format": "number"
+    },
+    "processes": {
+      "__name": "OSM2PGSQL_PROCESSES",
+      "__format": "number"
+    },
+    "output": "OSM2PGSQL_OUTPUT",
+    "generateExpireOutput": {
+      "__name": "OSM2PGSQL_GENERATE_EXPIRE_OUTPUT",
+      "__format": "boolean"
+    },
+    "logger": {
+      "level": "OSM2PGSQL_LOG_LEVEL",
+      "progress": {
+        "__name": "OSM2PGSQL_LOG_PROGRESS",
+        "__format": "boolean"
+      }
+    }
+  },
+  "osmium": {
+    "verbose": {
+      "__name": "OSMIUM_VERBOSE",
+      "__format": "boolean"
+    },
+    "progress": {
+      "__name": "OSMIUM_PROGRESS",
+      "__format": "boolean"
+    }
+  }
+}

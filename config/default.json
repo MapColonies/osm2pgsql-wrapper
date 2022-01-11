@@ -1,0 +1,30 @@
+{
+  "telemetry": {
+    "logger": {
+      "level": "info",
+      "prettyPrint": false
+    },
+    "tracing": {
+      "enabled": false,
+      "url": "http://localhost:4318/v1/trace"
+    }
+  },
+  "httpClient": {
+    "timeout": 1000
+  },
+  "osm2pgsql": {
+    "slim": true,
+    "cache": 2500,
+    "processes": 2,
+    "output": "flex",
+    "generateExpireOutput": true,
+    "logger": {
+      "level": "info",
+      "progress": true
+    }
+  },
+  "osmium": {
+    "verbose": false,
+    "progress": false
+  }
+}

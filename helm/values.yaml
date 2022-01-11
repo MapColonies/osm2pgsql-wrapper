@@ -1,0 +1,100 @@
+global:
+  cloudProvider: {}
+  tracing: {}
+  metrics: {}
+  environment: {}
+
+enabled: true
+environment: development
+
+cloudProvider:
+  flavor: openshift
+  dockerRegistryUrl: my-registry-url.io
+
+image:
+  repository: osm2pgsql-wrapper
+  # Overrides the image tag whose default is the chart appVersion.
+  # tag: 'v1.0.0'
+  pullPolicy: Always
+
+job:
+  enabled: true
+  apiVersion: 'batch/v1' # depends on openshift version batch/v1 or batch/v1beta1
+  restartPolicy: OnFailure
+  ttlSecondsAfterFinished: 60
+  backoffLimit: 6
+
+cron:
+  enabled: false
+  apiVersion: 'batch/v1' # depends on openshift version batch/v1 or batch/v1beta1
+  restartPolicy: OnFailure
+  schedule: '* * * * *'
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+
+resources:
+  enabled: false
+  value:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+env:
+  logLevel: info
+  logPrettyPrintEnabled: false
+  tracing:
+    enabled: false
+    url: http://localhost:55681/v1/trace
+  httpClient:
+    timeout: 1000
+  osm2pgsql:
+    slim: true
+    cache: 2500
+    processes: 2
+    output: flex
+    generateExpireOutput: true
+    logLevel: info
+    logProgress: true
+  osmium:
+    verbose: false
+    progress: false
+
+postgres:
+  host: localhost
+  username: postgres
+  password: postgres
+  database: osm2pgsql
+  # port: 5432
+  sslAuth:
+    enabled: false
+    secretName: secret-name
+    mountPath: '/tmp/certs-postgres'
+
+s3:
+  accessKey: accessKey
+  secretKey: secret
+  protocol: http
+  host: localhost
+  port: 9000
+  bucketName: osm2pgsql
+  projectId: someId
+  acl: private
+
+cli:
+  command: 'create' # create or append
+  append:
+    replicationUrl: 'https://planet.openstreetmap.org/replication/minute'
+    limit:
+      enabled: false
+      value: 10
+    config:
+      mountPath: '/tmp'
+      fileName: 'config.json'
+  create:
+    dumpSourceType: remote-url # local-file, remote-url or dump-server
+    dumpSource: 'https://remote-url.com'
+    s3LuaScriptKey: script.lua
