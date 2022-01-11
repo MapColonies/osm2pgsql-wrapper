@@ -1,6 +1,6 @@
 import { inject, injectable } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
-import { AxiosInstance, ResponseType } from 'axios';
+import { AxiosInstance } from 'axios';
 import { SERVICES, STATE_FILE } from '../common/constants';
 import { AxiosRequestArgsWithoutData, BaseClient, HttpResponse } from './baseClient';
 
@@ -19,17 +19,13 @@ export class ReplicationClient extends BaseClient {
     });
   }
 
-  public async getDiff(base: string, diffUrl: string): Promise<HttpResponse<Buffer>> {
+  public async getDiff(base: string, diffUrl: string): Promise<HttpResponse<NodeJS.ReadStream>> {
     this.logger.info(`invoking GET to ${base}/${diffUrl}`);
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
-    return this.invokeHttp<Buffer, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, diffUrl, {
+    return this.invokeHttp<NodeJS.ReadStream, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, diffUrl, {
       baseURL: base,
-      responseType: 'arraybuffer' as ResponseType,
-      headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        'Content-Type': 'application/gzip',
-      },
+      responseType: 'stream',
     });
   }
 }

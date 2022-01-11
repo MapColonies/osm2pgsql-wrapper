@@ -93,14 +93,14 @@ Postgres authentication should be defined by the following env varaibles: `PGHOS
 |------------------|---------------------------|---------------------------------------------------------------------------------|
 | 0                | success                   | the program finished successfuly.                                               |
 | 1                | general error             | catchall for general errors.                                                    |
-| 100              | osm2pgsql error              | failure occoured while running an osm2pgsql command.                         |
+| 100              | osm2pgsql error           | failure occoured while running an osm2pgsql command.                            |
 | 101              | state fetch error         | failure occoured while interacting with s3.                                     |
 | 102              | invalid state error       | state file located in s3 is invalid.                                            |
 | 103              | remote service response error           | remote service responded with an error.                                                               |
 | 104              | remote service unavailable            | could not reach to remote service.                                                            |
 | 105              | dump server empty response                | dump server could not find any dumps metadata.                                         |
-| 106              | osmium error                | failure occoured while running an osmium.
-                     |
+| 106              | osmium error                | failure occoured while running an osmium. |
+
 ## Building and Running
 
 ### Build argument variables

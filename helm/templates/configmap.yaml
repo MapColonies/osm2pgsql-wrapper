@@ -24,7 +24,7 @@ data:
   {{- end }}
   HTTP_CLIENT_TIMEOUT: {{ .Values.env.httpClient.timeout | quote }}
   OSM2PGSQL_SLIM: {{ .Values.env.osm2pgsql.slim | quote}}
-  OSM2PGSQL_CACHE: {{ .Values.env.osm2pgsql.processes | quote }}
+  OSM2PGSQL_CACHE: {{ .Values.env.osm2pgsql.cache | quote }}
   OSM2PGSQL_PROCESSES: {{ .Values.env.osm2pgsql.processes | quote }}
   OSM2PGSQL_OUTPUT: {{ .Values.env.osm2pgsql.output | quote }}
   OSM2PGSQL_GENERATE_EXPIRE_OUTPUT: {{ .Values.env.osm2pgsql.generateExpireOutput | quote }}

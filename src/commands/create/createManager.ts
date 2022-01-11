@@ -3,7 +3,7 @@ import fsPromises from 'fs/promises';
 import { inject, injectable } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { DATA_DIR, DEFAULT_DUMP_NAME, SERVICES } from '../../common/constants';
-import { createDirectory, getFileDirectory } from '../../common/util';
+import { createDirectory, getFileDirectory, streamToFs } from '../../common/util';
 import { DumpClient, DumpMetadataResponse } from '../../httpClient/dumpClient';
 import { S3ClientWrapper } from '../../s3Client/s3Client';
 import { CommandRunner } from '../../common/commandRunner';
@@ -45,10 +45,9 @@ export class CreateManager {
   public async getDumpFromRemoteToFs(url: string, name = DEFAULT_DUMP_NAME): Promise<string> {
     this.logger.info(`getting dump from remote service`);
 
-    const response = await this.dumpClient.getDump(url);
     const localDumpPath = join(DATA_DIR, name);
-    await fsPromises.writeFile(localDumpPath, response.data, { encoding: 'binary' });
-
+    const response = await this.dumpClient.getDump(url);
+    await streamToFs(response.data, localDumpPath);
     return localDumpPath;
   }
 

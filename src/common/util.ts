@@ -1,5 +1,9 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import * as stream from 'stream';
+import { promisify } from 'util';
+
+const finished = promisify(stream.finished);
 
 export const streamToString = async (stream: NodeJS.ReadStream): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -31,3 +35,9 @@ export const isStringEmptyOrUndefined = (input: string | undefined): boolean => 
 };
 
 export const removeDuplicates = <T>(input: T[]): T[] => input.filter((value, index) => input.indexOf(value) === index);
+
+export const streamToFs = async (stream: NodeJS.ReadStream, path: string): Promise<void> => {
+  const writeStream = fs.createWriteStream(path, { encoding: 'binary' });
+  stream.pipe(writeStream);
+  return finished(writeStream);
+};

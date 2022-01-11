@@ -1,7 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import qs from 'qs';
-import { AxiosInstance, ResponseType } from 'axios';
+import { AxiosInstance } from 'axios';
 import { SERVICES } from '../common/constants';
 import { AxiosRequestArgsWithoutData, BaseClient, HttpResponse } from './baseClient';
 
@@ -39,16 +39,12 @@ export class DumpClient extends BaseClient {
     });
   }
 
-  public async getDump(url: string): Promise<HttpResponse<Buffer>> {
+  public async getDump(url: string): Promise<HttpResponse<NodeJS.ReadStream>> {
     this.logger.info(`invoking GET to ${url}`);
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
-    return this.invokeHttp<Buffer, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, url, {
-      responseType: 'arraybuffer' as ResponseType,
-      headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        'Content-Type': 'application/gzip',
-      },
+    return this.invokeHttp<NodeJS.ReadStream, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, url, {
+      responseType: 'stream',
     });
   }
 }

@@ -16,7 +16,7 @@ import {
   EXPIRE_LIST,
   SEQUENCE_NUMBER_PADDING_AMOUNT,
 } from '../../common/constants';
-import { createDirectory, getFileDirectory, removeDuplicates, streamToString } from '../../common/util';
+import { createDirectory, getFileDirectory, removeDuplicates, streamToFs, streamToString } from '../../common/util';
 import { ReplicationClient } from '../../httpClient/replicationClient';
 import { AppendEntity } from '../../validation/schema';
 import { S3ClientWrapper } from '../../s3Client/s3Client';
@@ -174,9 +174,9 @@ export class AppendManager {
 
     const [top, bottom, sequenceNumber] = this.getDiffDirPathComponents(this.current);
     const diffKey = join(top, bottom, `${sequenceNumber}.${DIFF_FILE_EXTENTION}`);
-    const response = await this.replicationClient.getDiff(replicationUrl, diffKey);
     const localDiffPath = join(DATA_DIR, `${this.current}.${DIFF_FILE_EXTENTION}`);
-    await fsPromises.writeFile(localDiffPath, response.data, { encoding: 'binary' });
+    const response = await this.replicationClient.getDiff(replicationUrl, diffKey);
+    await streamToFs(response.data, localDiffPath);
     return localDiffPath;
   }
 
