@@ -6,8 +6,8 @@ import { DATA_DIR, DEFAULT_DUMP_NAME, SERVICES } from '../../common/constants';
 import { createDirectory, getFileDirectory, streamToFs } from '../../common/util';
 import { DumpClient, DumpMetadataResponse } from '../../httpClient/dumpClient';
 import { S3ClientWrapper } from '../../s3Client/s3Client';
-import { CommandRunner } from '../../common/commandRunner';
-import { DumpServerEmptyResponseError, Osm2pgsqlError } from '../../common/errors';
+import { DumpServerEmptyResponseError } from '../../common/errors';
+import { OsmCommandRunner } from '../../commandRunner/OsmCommandRunner';
 
 @injectable()
 export class CreateManager {
@@ -15,13 +15,13 @@ export class CreateManager {
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     private readonly s3Client: S3ClientWrapper,
     private readonly dumpClient: DumpClient,
-    private readonly commandRunner: CommandRunner
+    private readonly osmCommandRunner: OsmCommandRunner
   ) {}
 
-  public async getScriptFromS3ToFs(bucket: string, scriptKey: string): Promise<string> {
+  public async getScriptFromS3ToFs(scriptKey: string): Promise<string> {
     this.logger.info(`getting script from s3 to file system`);
 
-    const scriptStream = await this.s3Client.getObjectWrapper(bucket, scriptKey);
+    const scriptStream = await this.s3Client.getObjectWrapper(scriptKey);
 
     const localScriptPath = join(DATA_DIR, scriptKey);
     await createDirectory(getFileDirectory(localScriptPath));
@@ -52,12 +52,6 @@ export class CreateManager {
   }
 
   public async creation(scriptPath: string, dumpPath: string): Promise<void> {
-    const executable = 'osm2pgsql';
-    const { exitCode } = await this.commandRunner.run(executable, '--create', [`--style=${scriptPath}`, dumpPath]);
-
-    if (exitCode !== 0) {
-      this.logger.error(`${executable} exit with code ${exitCode as number}`);
-      throw new Osm2pgsqlError(`an error occurred while running ${executable}, exit code ${exitCode as number}`);
-    }
+    await this.osmCommandRunner.create([`--style=${scriptPath}`, dumpPath]);
   }
 }

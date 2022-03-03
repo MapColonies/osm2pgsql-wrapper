@@ -1,4 +1,5 @@
 import { JSONSchemaType } from 'ajv';
+import { QueueSettings } from '../commands/append/interfaces';
 
 const ZOOM_LEVEL_MINIMUM = 0;
 const ZOOM_LEVEL_MAXIMUM = 20;
@@ -27,7 +28,7 @@ export const APPEND_CONFIG_SCHEMA: JSONSchemaType<AppendEntity[]> = {
             minimum: ZOOM_LEVEL_MINIMUM,
             maximum: ZOOM_LEVEL_MAXIMUM,
           },
-          max: { type: 'number', maximum: ZOOM_LEVEL_MAXIMUM, nullable: true },
+          max: { type: 'number', minimum: ZOOM_LEVEL_MINIMUM, maximum: ZOOM_LEVEL_MAXIMUM, nullable: true },
         },
         required: ['min'],
       },
@@ -37,4 +38,15 @@ export const APPEND_CONFIG_SCHEMA: JSONSchemaType<AppendEntity[]> = {
   },
   uniqueItemProperties: ['id'],
   minItems: 1,
+};
+
+export const QUEUE_SETTINGS_SCHEMA: JSONSchemaType<QueueSettings> = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    minZoom: { type: 'number', minimum: ZOOM_LEVEL_MINIMUM, maximum: ZOOM_LEVEL_MAXIMUM },
+    maxZoom: { type: 'number', minimum: ZOOM_LEVEL_MINIMUM, maximum: ZOOM_LEVEL_MAXIMUM },
+  },
+  required: ['name', 'minZoom', 'maxZoom'],
+  additionalProperties: false,
 };

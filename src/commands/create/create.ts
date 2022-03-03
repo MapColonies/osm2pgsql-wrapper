@@ -72,11 +72,12 @@ export class CreateCommand implements CommandModule<GlobalArguments, CreateArgum
   };
 
   public handler = async (argv: Arguments<CreateArguments>): Promise<void> => {
-    const { s3ProjectId, s3LuaScriptKey, s3BucketName, dumpSourceType, dumpSource } = argv;
+    const { s3ProjectId, s3LuaScriptKey, dumpSourceType, dumpSource } = argv;
     const scriptKey = join(s3ProjectId, s3LuaScriptKey);
 
+    // TODO: transfer buisness logic to manager
     try {
-      const localScriptPath = await this.manager.getScriptFromS3ToFs(s3BucketName, scriptKey);
+      const localScriptPath = await this.manager.getScriptFromS3ToFs(scriptKey);
 
       let localDumpPath = dumpSource;
 

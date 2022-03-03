@@ -17,6 +17,7 @@ export const SERVICES: Record<string, symbol> = {
   METER: Symbol('Meter'),
   S3: Symbol('S3'),
   HTTP_CLIENT: Symbol('HttpClient'),
+  CONFIG_STORE: Symbol('ConfigStore'),
 };
 
 export const ExitCodes = {
@@ -29,8 +30,10 @@ export const ExitCodes = {
   REMOTE_SERVICE_UNAVAILABLE: 104,
   DUMP_SERVER_EMPTY_RESPONSE_ERROR: 105,
   OSMIUM_ERROR: 106,
+  REQUEST_ALREADY_IN_QUEUE_ERROR: 107,
 };
 
+export const NOT_FOUND_INDEX = -1;
 export const S3_REGION = 'us-east-1';
 export const DATA_DIR = '/tmp';
 export const STATE_FILE = 'state.txt';

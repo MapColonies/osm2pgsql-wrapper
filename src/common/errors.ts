@@ -56,3 +56,10 @@ export class InvalidStateFileError extends ErrorWithExitCode {
     Object.setPrototypeOf(this, InvalidStateFileError.prototype);
   }
 }
+
+export class RequestAlreadyInQueueError extends ErrorWithExitCode {
+  public constructor(message?: string) {
+    super(message, ExitCodes.REQUEST_ALREADY_IN_QUEUE_ERROR);
+    Object.setPrototypeOf(this, RequestAlreadyInQueueError.prototype);
+  }
+}
