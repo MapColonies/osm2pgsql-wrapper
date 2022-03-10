@@ -2,13 +2,13 @@ import fsPromises from 'fs/promises';
 import { container, FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { Arguments, Argv, CommandModule } from 'yargs';
-import { ExitCodes, EXIT_CODE, NOT_FOUND_INDEX, SERVICES } from '../../common/constants';
+import { ExitCodes, EXIT_CODE, NOT_FOUND_INDEX, SERVICES } from '../../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
-import { validateBySchema, ValidationResponse } from '../../validation/validator';
-import { APPEND_CONFIG_SCHEMA, AppendEntity, QUEUE_SETTINGS_SCHEMA } from '../../validation/schemas';
-import { ErrorWithExitCode } from '../../common/errors';
+import { validateBySchema, ValidationResponse } from '../../../validation/validator';
+import { APPEND_CONFIG_SCHEMA, AppendEntity, QUEUE_SETTINGS_SCHEMA, LIMIT_SCHEMA, Limit } from '../../../validation/schemas';
+import { ErrorWithExitCode } from '../../../common/errors';
 import { uploadTargetsRegistrationMiddlewareFactory } from '../../middlewares';
-import { ExpireTilesUploadTarget } from '../../common/types';
+import { ExpireTilesUploadTarget } from '../../../common/types';
 import { AppendManager } from './appendManager';
 import { command, describe, APPEND_MANAGER_FACTORY } from './constants';
 import { AppendArguments, QueueSettings } from './interfaces';
@@ -42,6 +42,9 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         choices: ['s3', 'queue'],
         string: true,
         default: [] as string[],
+        coerce: (targetsString: string) => {
+          return targetsString[0].split(',');
+        },
       })
       .option('name', {
         alias: ['queue-name'],
@@ -57,15 +60,14 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       })
       .check(async (argv) => {
         const { limit, config, uploadTargets } = argv;
+        let validationResponse: ValidationResponse<unknown>;
 
-        if ((limit !== undefined && !Number.isInteger(limit)) || (limit !== undefined && limit < 1)) {
-          // TODO: throw error
-        }
+        validationResponse = validateBySchema<Limit>({ limit }, LIMIT_SCHEMA);
+        throwIfInvalidResponse(validationResponse);
 
         const configContent = await fsPromises.readFile(config, 'utf-8');
         const configContentAsJson: unknown = JSON.parse(configContent);
-        const validationResponse = validateBySchema<AppendEntity[]>(configContentAsJson, APPEND_CONFIG_SCHEMA);
-
+        validationResponse = validateBySchema<AppendEntity[]>(configContentAsJson, APPEND_CONFIG_SCHEMA);
         throwIfInvalidResponse(validationResponse);
 
         appendEntities = validationResponse.content as AppendEntity[];
@@ -77,8 +79,7 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
             minZoom: minZoom as number,
             maxZoom: maxZoom as number,
           };
-          const validationResponse = validateBySchema<QueueSettings>(request, QUEUE_SETTINGS_SCHEMA);
-
+          validationResponse = validateBySchema<QueueSettings>(request, QUEUE_SETTINGS_SCHEMA);
           throwIfInvalidResponse(validationResponse);
         }
 
@@ -98,6 +99,8 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       await manager.prepareManager(s3ProjectId, appendEntities, uploadTargets as ExpireTilesUploadTarget[], limit);
 
       await manager.append(replicationUrl);
+
+      logger.info(`finished successfully the append of ${s3ProjectId}`);
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
       if (error instanceof ErrorWithExitCode) {

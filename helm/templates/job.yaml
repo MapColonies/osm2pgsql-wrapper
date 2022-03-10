@@ -52,6 +52,10 @@ spec:
             - name: cert-conf
               mountPath: {{ .Values.postgres.sslAuth.mountPath }}
           {{- end }}
+          {{- if .Values.pgboss.sslAuth.enabled }}
+            - name: pgboss-cert-conf
+              mountPath: {{ .Values.postgres.sslAuth.mountPath }}
+          {{- end }}
       volumes:
         {{- if eq .Values.cli.command "append" }}
         - name: config-schema
@@ -62,5 +66,10 @@ spec:
         - name: cert-conf
           secret:
             secretName: {{ .Values.postgres.sslAuth.secretName }}
+        {{- end }}
+        {{- if .Values.pgboss.sslAuth.enabled }}
+        - name: pgboss-cert-conf
+          secret:
+            secretName: {{ .Values.pgboss.sslAuth.secretName }}
         {{- end }}
 {{- end -}}

@@ -74,6 +74,18 @@ postgres:
     secretName: secret-name
     mountPath: '/tmp/certs-postgres'
 
+pgboss:
+  host: localhost
+  username: postgres
+  password: postgres
+  database: job
+  schema: pgboss
+  port: 5432
+  sslAuth:
+    enabled: false
+    secretName: secret-name
+    mountPath: '/tmp/certs-pgboss'
+
 s3:
   accessKey: accessKey
   secretKey: secret
@@ -94,6 +106,11 @@ cli:
     config:
       mountPath: '/tmp'
       fileName: 'config.json'
+    uploadTargets: 's3,queue' # the upload targets separated with a comma with no space
+    queue:
+      name: queueName
+      minZoom: 1
+      maxZoom: 18
   create:
     dumpSourceType: remote-url # local-file, remote-url or dump-server
     dumpSource: 'https://remote-url.com'

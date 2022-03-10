@@ -55,7 +55,6 @@ export const applyFuncLineByLine = async (inputStream: NodeJS.ReadableStream, fu
     input: inputStream,
   });
 
-  // TODO: needed or can be accomplished by line event?
   for await (const line of readLineInterface) {
     func(line);
   }

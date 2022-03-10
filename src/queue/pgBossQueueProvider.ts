@@ -3,7 +3,7 @@ import { Logger } from '@map-colonies/js-logger';
 import PgBoss from 'pg-boss';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '../common/constants';
-import { RequestAlreadyInQueueError } from '../common/errors';
+import { QueueError, RequestAlreadyInQueueError } from '../common/errors';
 import { IConfig } from '../common/interfaces';
 import { QueueProvider } from './queueProvider';
 
@@ -14,9 +14,9 @@ export class PgBossQueueProvider implements QueueProvider {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     private readonly pgBoss: PgBoss,
-    @inject(SERVICES.CONFIG_STORE) config: IConfig
+    @inject(SERVICES.CONFIG_STORE) configStore: IConfig
   ) {
-    this.queueName = config.get<string>('queue.name');
+    this.queueName = configStore.get<string>('queue.name');
   }
 
   public async startQueue(): Promise<void> {
@@ -26,7 +26,13 @@ export class PgBossQueueProvider implements QueueProvider {
       this.logger.error(err, 'pg-boss error');
     });
 
-    await this.pgBoss.start();
+    try {
+      await this.pgBoss.start();
+    } catch (error) {
+      const queueError = error as Error;
+      this.logger.error(queueError);
+      throw new QueueError(queueError.message);
+    }
   }
 
   public async stopQueue(): Promise<void> {
@@ -39,9 +45,14 @@ export class PgBossQueueProvider implements QueueProvider {
 
     const hash = createHash('md5');
     hash.update(JSON.stringify(payload));
-    const response = await this.pgBoss.sendOnce(this.queueName, payload, {}, hash.digest('hex'));
-    if (response === null) {
-      throw new RequestAlreadyInQueueError(`Request already in queue ${this.queueName}`);
+    try {
+      const response = await this.pgBoss.sendOnce(this.queueName, payload, {}, hash.digest('hex'));
+      if (response === null) {
+        throw new RequestAlreadyInQueueError(`request already in queue: ${this.queueName}`);
+      }
+    } catch (error) {
+      const queueError = error as Error;
+      throw new QueueError(queueError.message);
     }
   }
 }

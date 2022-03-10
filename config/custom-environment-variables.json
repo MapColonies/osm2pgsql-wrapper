@@ -60,24 +60,24 @@
       "__format": "boolean"
     }
   },
-  "db": {
-    "host": "DB_HOST",
+  "pgboss": {
+    "host": "PGBOSS_HOST",
     "port": {
-      "__name": "DB_PORT",
+      "__name": "PGBOSS_PORT",
       "__format": "number"
     },
-    "user": "DB_USERNAME",
-    "password": "DB_PASSWORD",
-    "schema": "DB_SCHEMA",
+    "user": "PGBOSS_USERNAME",
+    "password": "PGBOSS_PASSWORD",
+    "schema": "PGBOSS_SCHEMA",
     "enableSslAuth": {
-      "__name": "DB_ENABLE_SSL_AUTH",
+      "__name": "PGBOSS_ENABLE_SSL_AUTH",
       "__format": "boolean"
     },
     "sslPaths": {
-      "ca": "DB_CA_PATH",
-      "key": "DB_KEY_PATH",
-      "cert": "DB_CERT_PATH"
+      "ca": "PGBOSS_CA_PATH",
+      "key": "PGBOSS_KEY_PATH",
+      "cert": "PGBOSS_CERT_PATH"
     },
-    "database": "DB_NAME"
+    "database": "PGBOSS_DATABASE"
   }
 }
