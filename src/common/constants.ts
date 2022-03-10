@@ -6,7 +6,6 @@ export const IGNORED_OUTGOING_TRACE_ROUTES = [/^.*\/v1\/metrics.*$/];
 export const IGNORED_INCOMING_TRACE_ROUTES = [/^.*\/docs.*$/];
 
 export const CLI_BUILDER = Symbol('cliBuilder');
-export const ON_SIGNAL = Symbol('onSignal');
 export const EXIT_CODE = Symbol('exitCode');
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -30,7 +29,8 @@ export const ExitCodes = {
   REMOTE_SERVICE_UNAVAILABLE: 104,
   DUMP_SERVER_EMPTY_RESPONSE_ERROR: 105,
   OSMIUM_ERROR: 106,
-  REQUEST_ALREADY_IN_QUEUE_ERROR: 107,
+  QUEUE_ERROR: 107,
+  BUCKET_DOES_NOT_EXIST_ERROR: 108,
 };
 
 export const NOT_FOUND_INDEX = -1;

@@ -3,7 +3,7 @@ import { JSONSchemaType } from 'ajv';
 import * as ajvKeywords from 'ajv-keywords';
 import betterAjvErrors from 'better-ajv-errors';
 
-const ajv = new Ajv({ $data: true });
+const ajv = new Ajv({ $data: true, coerceTypes: true });
 ajvKeywords.default(ajv);
 
 export interface ValidationResponse<T> {

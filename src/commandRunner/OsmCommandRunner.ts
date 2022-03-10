@@ -1,10 +1,11 @@
-import { Logger } from 'ajv';
+import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '../common/constants';
 import { Osm2pgsqlError, OsmiumError } from '../common/errors';
 import { IConfig, Osm2pgsqlConfig, OsmiumConfig } from '../common/interfaces';
-import { Executable } from '../common/types';
 import { CommandRunner } from './commandRunner';
+
+type Executable = 'osm2pgsql' | 'osmium';
 
 @injectable()
 export class OsmCommandRunner {

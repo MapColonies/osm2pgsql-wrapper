@@ -1,23 +1,23 @@
 import { join } from 'path';
 import fsPromises from 'fs/promises';
-import { inject, injectable } from 'tsyringe';
+import { inject, singleton } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
-import { DATA_DIR, DEFAULT_SEQUENCE_NUMBER, SEQUENCE_NUMBER_REGEX, SERVICES, STATE_FILE } from '../../common/constants';
-import { InvalidStateFileError } from '../../common/errors';
-import { createDirectory, fetchSequenceNumber, getFileDirectory, streamToString } from '../../common/util';
-import { ReplicationClient } from '../../httpClient/replicationClient';
-import { S3ClientWrapper } from '../../s3Client/s3Client';
+import { DATA_DIR, DEFAULT_SEQUENCE_NUMBER, SEQUENCE_NUMBER_REGEX, SERVICES, STATE_FILE } from '../../../common/constants';
+import { BucketDoesNotExistError, InvalidStateFileError } from '../../../common/errors';
+import { createDirectory, fetchSequenceNumber, getFileDirectory, streamToString } from '../../../common/util';
+import { ReplicationClient } from '../../../httpClient/replicationClient';
+import { S3ClientWrapper } from '../../../s3Client/s3Client';
 
 let stateContent: string;
 
-@injectable()
+@singleton()
 export class StateTracker {
   public start = DEFAULT_SEQUENCE_NUMBER;
   public end = DEFAULT_SEQUENCE_NUMBER;
   public current = DEFAULT_SEQUENCE_NUMBER;
   public projectId = '';
   private remainingAppends?: number;
-  private totalConfiguredAppends?: number;
+  private totalRequestedAppends?: number;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -30,7 +30,7 @@ export class StateTracker {
 
     this.projectId = projectId;
     if (limit !== undefined) {
-      this.totalConfiguredAppends = limit;
+      this.totalRequestedAppends = limit;
       this.remainingAppends = limit;
     }
 
@@ -38,11 +38,16 @@ export class StateTracker {
 
     this.logger.debug(`creating directory ${dir}`);
     await createDirectory(dir);
+
+    if (!(await this.s3Client.validateExistance('bucket'))) {
+      this.logger.error('the specified bucket does not exists');
+      throw new BucketDoesNotExistError('the specified bucket does not exist');
+    }
   }
 
   public isUpToDateOrReachedLimit(): boolean {
     if (this.remainingAppends === 0) {
-      this.logger.info(`append limitation of ${this.totalConfiguredAppends as number} has reached`);
+      this.logger.info(`append limitation of ${this.totalRequestedAppends as number} has reached`);
       return true;
     }
     return this.current === this.end;
@@ -96,9 +101,9 @@ export class StateTracker {
   }
 
   public updateRemainingAppends(): void {
-    if (this.totalConfiguredAppends !== undefined) {
+    if (this.totalRequestedAppends !== undefined) {
       this.logger.info(
-        `append number ${this.totalConfiguredAppends - (this.remainingAppends as number) + 1} out of ${this.totalConfiguredAppends} has finished`
+        `append number ${this.totalRequestedAppends - (this.remainingAppends as number) + 1} out of ${this.totalRequestedAppends} has finished`
       );
       (this.remainingAppends as number)--;
     }

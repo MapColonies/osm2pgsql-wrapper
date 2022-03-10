@@ -3,28 +3,23 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { inject } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
-import { IConfig } from '../../common/interfaces';
-import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST } from '../../common/constants';
-import {
-  getDiffDirPathComponents,
-  removeDuplicates,
-  streamToFs,
-  valuesToRange,
-} from '../../common/util';
-import { ReplicationClient } from '../../httpClient/replicationClient';
-import { AppendEntity } from '../../validation/schemas';
-import { S3ClientWrapper } from '../../s3Client/s3Client';
-import { ExpireTilesUploadTarget } from '../../common/types';
-import { OsmCommandRunner } from '../../commandRunner/OsmCommandRunner';
-import { PgBossQueueProvider } from '../../queue/pgBossQueueProvider';
+import { IConfig } from '../../../common/interfaces';
+import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST } from '../../../common/constants';
+import { getDiffDirPathComponents, removeDuplicates, streamToFs, valuesToRange } from '../../../common/util';
+import { ReplicationClient } from '../../../httpClient/replicationClient';
+import { AppendEntity } from '../../../validation/schemas';
+import { S3ClientWrapper } from '../../../s3Client/s3Client';
+import { ExpireTilesUploadTarget } from '../../../common/types';
+import { OsmCommandRunner } from '../../../commandRunner/OsmCommandRunner';
+import { QueueProvider } from '../../../queue/queueProvider';
+import { RequestAlreadyInQueueError } from '../../../common/errors';
 import { QueueSettings, TileRequestQueuePayload } from './interfaces';
 import { StateTracker } from './stateTracker';
 import { expireListStreamToBboxArray } from './util';
 
-// TODO: should keep the inject decorators?
 export class AppendManager {
   private entities: AppendEntity[] = [];
-  private uploadTargets?: Set<ExpireTilesUploadTarget>;
+  private uploadTargets: ExpireTilesUploadTarget[] = [];
   private readonly shouldGenerateExpireOutput: boolean;
 
   public constructor(
@@ -35,7 +30,7 @@ export class AppendManager {
     private readonly replicationClient: ReplicationClient,
     private readonly osmCommandRunner: OsmCommandRunner,
     private readonly configStore: IConfig,
-    private readonly pgBossProvider?: PgBossQueueProvider
+    private readonly queueProvider?: QueueProvider
   ) {
     this.shouldGenerateExpireOutput = config.get<boolean>('osm2pgsql.generateExpireOutput');
   }
@@ -45,10 +40,10 @@ export class AppendManager {
 
     this.entities = entities;
 
-    this.uploadTargets = new Set(uploadTargets);
+    this.uploadTargets = [...new Set(uploadTargets)];
 
-    if (this.pgBossProvider) {
-      await this.pgBossProvider.startQueue();
+    if (this.queueProvider) {
+      await this.queueProvider.startQueue();
     }
   }
 
@@ -66,7 +61,7 @@ export class AppendManager {
     await this.stateTracker.getScriptsFromS3ToFs(scriptsKeys);
 
     while (!this.stateTracker.isUpToDateOrReachedLimit()) {
-      // await this.appendCurrentState(replicationUrl);
+      await this.appendCurrentState(replicationUrl);
 
       if (this.shouldGenerateExpireOutput) {
         await this.uploadExpired();
@@ -78,7 +73,7 @@ export class AppendManager {
     }
 
     const { projectId, start, current } = this.stateTracker;
-    this.logger.info(`successfully appended ${projectId} from ${start} to ${current - 1}`);
+    this.logger.info(`successfully appended ${projectId} from ${start} to ${current - 1} overall`);
   }
 
   private async appendCurrentState(replicationUrl: string): Promise<void> {
@@ -100,17 +95,14 @@ export class AppendManager {
   private async uploadExpired(): Promise<void> {
     const uploadPromises = this.entities.map(async (entity) => {
       const expireTilesFileName = `${entity.id}.${this.stateTracker.current}.${EXPIRE_LIST}`;
-      // const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
-      const localExpireTilesListPath = '/tmp/expire.list';
+      const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
 
-      if (this.uploadTargets) {
-        for await (const target of Array.from(this.uploadTargets)) {
-          if (target === 's3') {
-            await this.uploadExpiredListToS3(localExpireTilesListPath, entity.id);
-          }
-          if (target === 'queue') {
-            await this.pushExpireTilesToQueue(localExpireTilesListPath);
-          }
+      for await (const target of this.uploadTargets) {
+        if (target === 's3') {
+          await this.uploadExpiredListToS3(localExpireTilesListPath, entity.id);
+        }
+        if (target === 'queue') {
+          await this.pushExpireTilesToQueue(localExpireTilesListPath);
         }
       }
     });
@@ -124,9 +116,11 @@ export class AppendManager {
     const localScriptPath = join(DATA_DIR, this.stateTracker.projectId, entity.script);
     appendArgs.push(`--style=${localScriptPath}`);
 
-    // TODO: make zoomLevels optional
-    const expireTilesZoom = valuesToRange(entity.zoomLevel.min, entity.zoomLevel.max);
-    appendArgs.push(`--expire-tiles=${expireTilesZoom}`);
+    let expireTilesZoom = 'default';
+    if (entity.zoomLevel) {
+      expireTilesZoom = valuesToRange(entity.zoomLevel.min, entity.zoomLevel.max);
+      appendArgs.push(`--expire-tiles=${expireTilesZoom}`);
+    }
 
     if (this.shouldGenerateExpireOutput) {
       const expireTilesFileName = `${entity.id}.${this.stateTracker.current}.${EXPIRE_LIST}`;
@@ -134,7 +128,7 @@ export class AppendManager {
       appendArgs.push(`--expire-output=${localExpireTilesListPath}`);
     }
 
-    this.logger.info(`initializing the append of ${entity.id} on zoom levels ${expireTilesZoom}`);
+    this.logger.info(`initializing the append of ${entity.id} on ${expireTilesZoom} zoom levels`);
 
     await this.osmCommandRunner.append([...appendArgs, diffPath]);
 
@@ -144,6 +138,7 @@ export class AppendManager {
   private async uploadExpiredListToS3(expireListPath: string, entityId: string): Promise<void> {
     const expireTilesListBuffer = await fsPromises.readFile(expireListPath);
     const expireListKey = join(this.stateTracker.projectId, entityId, this.stateTracker.current.toString(), EXPIRE_LIST);
+
     await this.s3Client.putObjectWrapper(expireListKey, expireTilesListBuffer);
   }
 
@@ -161,7 +156,13 @@ export class AppendManager {
       maxZoom: queueSettings.maxZoom,
     };
 
-    await (this.pgBossProvider as PgBossQueueProvider).push(payload);
+    try {
+      await (this.queueProvider as QueueProvider).push(payload);
+    } catch (error) {
+      if (error instanceof RequestAlreadyInQueueError) {
+        this.logger.warn(`${error.message}`);
+      }
+    }
   }
 
   private async getDiffToFs(replicationUrl: string): Promise<string> {

@@ -1,19 +1,13 @@
-import { join } from 'path';
 import { existsSync } from 'fs';
 import { Argv, CommandModule, Arguments } from 'yargs';
 import { isWebUri } from 'valid-url';
 import { Logger } from '@map-colonies/js-logger';
-import { container, delay, inject, injectable } from 'tsyringe';
+import { container, FactoryFunction } from 'tsyringe';
 import { GlobalArguments } from '../../cliBuilderFactory';
-import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
-import { ErrorWithExitCode } from '../../common/errors';
+import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
+import { ErrorWithExitCode } from '../../../common/errors';
 import { CreateManager } from './createManager';
-
-enum DumpSourceType {
-  LOCAL_FILE = 'local-file',
-  REMOTE_URL = 'remote-url',
-  DUMP_SERVER = 'dump-server',
-}
+import { command, describe, CREATE_MANAGER_FACTORY, DumpSourceType } from './constants';
 
 export interface CreateArguments extends GlobalArguments {
   dumpSourceType: DumpSourceType;
@@ -21,18 +15,11 @@ export interface CreateArguments extends GlobalArguments {
   s3LuaScriptKey: string;
 }
 
-@injectable()
-export class CreateCommand implements CommandModule<GlobalArguments, CreateArguments> {
-  public command = 'create';
-  public describe = 'initialize a database from scratch by creating it out of an osm pbf file';
+export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments, CreateArguments>> = (dependencyContainer) => {
+  const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
 
-  public constructor(
-    @inject(delay(() => CreateManager)) private readonly manager: CreateManager,
-    @inject(SERVICES.LOGGER) private readonly logger: Logger
-  ) {}
-
-  public builder = (yargs: Argv<GlobalArguments>): Argv<CreateArguments> => {
-    yargs
+  const builder = (args: Argv<GlobalArguments>): Argv<CreateArguments> => {
+    args
       .option('dumpSourceType', {
         alias: ['t', 'dump-source-type'],
         describe: 'The source type of the dump',
@@ -68,38 +55,36 @@ export class CreateCommand implements CommandModule<GlobalArguments, CreateArgum
 
         return true;
       });
-    return yargs as Argv<CreateArguments>;
+
+    return args as Argv<CreateArguments>;
   };
 
-  public handler = async (argv: Arguments<CreateArguments>): Promise<void> => {
-    const { s3ProjectId, s3LuaScriptKey, dumpSourceType, dumpSource } = argv;
-    const scriptKey = join(s3ProjectId, s3LuaScriptKey);
+  const handler = async (argv: Arguments<CreateArguments>): Promise<void> => {
+    const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType } = argv;
 
-    // TODO: transfer buisness logic to manager
     try {
-      const localScriptPath = await this.manager.getScriptFromS3ToFs(scriptKey);
+      const manager = dependencyContainer.resolve<CreateManager>(CREATE_MANAGER_FACTORY);
 
-      let localDumpPath = dumpSource;
+      await manager.create(s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType);
 
-      if (dumpSourceType !== DumpSourceType.LOCAL_FILE) {
-        const remoteDumpUrl =
-          dumpSourceType === DumpSourceType.DUMP_SERVER ? (await this.manager.getLatestFromDumpServer(dumpSource)).url : dumpSource;
-        localDumpPath = await this.manager.getDumpFromRemoteToFs(remoteDumpUrl);
-      }
-
-      await this.manager.creation(localScriptPath, localDumpPath);
-
-      this.logger.info(`successfully created ${s3ProjectId}`);
+      logger.info(`finished successfully the creation of ${s3ProjectId}`);
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
       if (error instanceof ErrorWithExitCode) {
         exitCode = error.exitCode;
       } else {
-        this.logger.error((error as Error).message);
+        logger.error((error as Error).message);
       }
 
       container.register(EXIT_CODE, { useValue: exitCode });
-      this.logger.warn(`an error occurred, exiting with code ${exitCode}`);
+      logger.warn(`an error occurred, exiting with code ${exitCode}`);
     }
   };
-}
+
+  return {
+    command,
+    describe,
+    builder,
+    handler,
+  };
+};

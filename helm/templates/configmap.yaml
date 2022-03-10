@@ -32,4 +32,19 @@ data:
   OSM2PGSQL_LOG_PROGRESS: {{ .Values.env.osm2pgsql.logProgress | quote }}
   OSMIUM_VERBOSE: {{ .Values.env.osmium.verbose | quote }}
   OSMIUM_PROGRESS: {{ .Values.env.osmium.progress | quote }}
+  {{- with .Values.pgboss }}
+  PGBOSS_HOST: {{ .host | quote }}
+  PGBOSS_PORT: {{ .port | default 5432 | quote }}
+  PGBOSS_DATABASE: {{ .database | quote }}
+  PGBOSS_SCHEMA: {{ .schema | quote }}
+  PGBOSS_ENABLE_SSL_AUTH: {{ .sslAuth.enabled | quote }}
+  {{- if .sslAuth.enabled }}
+  PGBOSS_ENABLE_SSL_AUTH: "true"
+  PGBOSS_CERT_PATH: /tmp/pgboss-certs/{{ .sslAuth.certFileName }}
+  PGBOSS_KEY_PATH: /tmp/pgboss-certs/{{ .sslAuth.keyFileName }}
+  PGBOSS_CA_PATH: /tmp/pgboss-certs/{{ .sslAuth.caFileName }}
+  {{- else }}
+  PGBOSS_ENABLE_SSL_AUTH: "false"
+  {{- end }}
+  {{- end }}
 {{- end -}}

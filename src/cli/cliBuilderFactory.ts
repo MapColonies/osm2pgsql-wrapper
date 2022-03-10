@@ -1,7 +1,7 @@
 import yargs from 'yargs/yargs';
 import { Argv, CommandModule } from 'yargs';
 import { FactoryFunction } from 'tsyringe';
-import { CREATE_COMMAND_FACTORY } from './commands/create/createFactory';
+import { CREATE_COMMAND_FACTORY } from './commands/create/constants';
 import { APPEND_COMMAND_FACTORY } from './commands/append/constants';
 import { s3RegisterationMiddlewareFactory } from './middlewares';
 

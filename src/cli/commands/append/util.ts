@@ -1,6 +1,6 @@
 import { BoundingBox } from '@map-colonies/tile-calc';
 import SphericalMercator from '@mapbox/sphericalmercator';
-import { applyFuncLineByLine } from '../../common/util';
+import { applyFuncLineByLine } from '../../../common/util';
 
 const sphericalMercatorUtil = new SphericalMercator({});
 

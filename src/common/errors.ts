@@ -59,7 +59,21 @@ export class InvalidStateFileError extends ErrorWithExitCode {
 
 export class RequestAlreadyInQueueError extends ErrorWithExitCode {
   public constructor(message?: string) {
-    super(message, ExitCodes.REQUEST_ALREADY_IN_QUEUE_ERROR);
+    super(message);
     Object.setPrototypeOf(this, RequestAlreadyInQueueError.prototype);
+  }
+}
+
+export class QueueError extends ErrorWithExitCode {
+  public constructor(message?: string) {
+    super(message, ExitCodes.QUEUE_ERROR);
+    Object.setPrototypeOf(this, RequestAlreadyInQueueError.prototype);
+  }
+}
+
+export class BucketDoesNotExistError extends ErrorWithExitCode {
+  public constructor(message?: string) {
+    super(message, ExitCodes.BUCKET_DOES_NOT_EXIST_ERROR);
+    Object.setPrototypeOf(this, BucketDoesNotExistError.prototype);
   }
 }
