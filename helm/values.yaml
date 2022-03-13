@@ -85,6 +85,9 @@ pgboss:
     enabled: false
     secretName: secret-name
     mountPath: '/tmp/certs-pgboss'
+    certFileName: postgresql.crt
+    keyFileName: postgresql.key
+    caFileName: root.crt
 
 s3:
   accessKey: accessKey
@@ -104,7 +107,7 @@ cli:
       enabled: false
       value: 10
     config:
-      mountPath: '/tmp'
+      mountPath: '/tmp/config'
       fileName: 'config.json'
     uploadTargets: 's3,queue' # the upload targets separated with a comma with no space
     queue:

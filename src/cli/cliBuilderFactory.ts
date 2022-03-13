@@ -3,7 +3,7 @@ import { Argv, CommandModule } from 'yargs';
 import { FactoryFunction } from 'tsyringe';
 import { CREATE_COMMAND_FACTORY } from './commands/create/constants';
 import { APPEND_COMMAND_FACTORY } from './commands/append/constants';
-import { s3RegisterationMiddlewareFactory } from './middlewares';
+import { s3RegistrationMiddlewareFactory } from './middlewares';
 
 export interface GlobalArguments {
   s3Endpoint: string;
@@ -34,7 +34,7 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
     .help('h')
     .alias('h', 'help');
 
-  args.middleware(s3RegisterationMiddlewareFactory(dependencyContainer));
+  args.middleware(s3RegistrationMiddlewareFactory(dependencyContainer));
 
   args.command(dependencyContainer.resolve<CommandModule>(CREATE_COMMAND_FACTORY));
   args.command(dependencyContainer.resolve<CommandModule>(APPEND_COMMAND_FACTORY));

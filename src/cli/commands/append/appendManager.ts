@@ -21,6 +21,7 @@ export class AppendManager {
   private entities: AppendEntity[] = [];
   private uploadTargets: ExpireTilesUploadTarget[] = [];
   private readonly shouldGenerateExpireOutput: boolean;
+  private readonly queueSettings?: QueueSettings;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -29,10 +30,13 @@ export class AppendManager {
     private readonly s3Client: S3ClientWrapper,
     private readonly replicationClient: ReplicationClient,
     private readonly osmCommandRunner: OsmCommandRunner,
-    private readonly configStore: IConfig,
+    configStore: IConfig,
     private readonly queueProvider?: QueueProvider
   ) {
     this.shouldGenerateExpireOutput = config.get<boolean>('osm2pgsql.generateExpireOutput');
+    if (configStore.has('queue')) {
+      this.queueSettings = configStore.get<QueueSettings>('queue');
+    }
   }
 
   public async prepareManager(projectId: string, entities: AppendEntity[], uploadTargets: ExpireTilesUploadTarget[], limit?: number): Promise<void> {
@@ -61,7 +65,7 @@ export class AppendManager {
     await this.stateTracker.getScriptsFromS3ToFs(scriptsKeys);
 
     while (!this.stateTracker.isUpToDateOrReachedLimit()) {
-      await this.appendCurrentState(replicationUrl);
+      // await this.appendCurrentState(replicationUrl);
 
       if (this.shouldGenerateExpireOutput) {
         await this.uploadExpired();
@@ -147,13 +151,11 @@ export class AppendManager {
 
     const bbox = await expireListStreamToBboxArray(expireListStream);
 
-    const queueSettings = this.configStore.get<QueueSettings>('queue');
-
     const payload: TileRequestQueuePayload = {
       bbox,
       source: 'expiredTiles',
-      minZoom: queueSettings.minZoom,
-      maxZoom: queueSettings.maxZoom,
+      minZoom: (this.queueSettings as QueueSettings).minZoom,
+      maxZoom: (this.queueSettings as QueueSettings).maxZoom,
     };
 
     try {
