@@ -10,15 +10,17 @@ import {
   SEQUENCE_NUMBER_PADDING_AMOUNT,
   SEQUENCE_NUMBER_REGEX,
 } from './constants';
+import { Sort } from './types';
 
 const finished = promisify(stream.finished);
 
 export const streamToString = async (stream: NodeJS.ReadStream): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const chunks: Uint8Array[] = [];
-    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.setEncoding('utf8');
+    let data = '';
+    stream.on('data', (chunk) => (data += chunk));
     stream.on('error', reject);
-    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    stream.on('end', () => resolve(data));
   });
 };
 
@@ -84,4 +86,17 @@ export const fetchSequenceNumber = (content: string): number => {
   }
 
   return parseInt(matchResult[0].split('=')[1]);
+};
+
+export const convertStreamToLinesArr = async (stream: NodeJS.ReadableStream): Promise<string[]> => {
+  const linesArray: string[] = [];
+  await applyFuncLineByLine(stream, (line) => {
+    linesArray.push(line);
+  });
+
+  return linesArray;
+};
+
+export const sortArrAlphabetically = (arr: string[], sort?: Sort): string[] => {
+  return arr.sort((a, b) => (sort === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
 };

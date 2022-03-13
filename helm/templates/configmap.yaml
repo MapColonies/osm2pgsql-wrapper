@@ -40,9 +40,10 @@ data:
   PGBOSS_ENABLE_SSL_AUTH: {{ .sslAuth.enabled | quote }}
   {{- if .sslAuth.enabled }}
   PGBOSS_ENABLE_SSL_AUTH: "true"
-  PGBOSS_CERT_PATH: /tmp/pgboss-certs/{{ .sslAuth.certFileName }}
-  PGBOSS_KEY_PATH: /tmp/pgboss-certs/{{ .sslAuth.keyFileName }}
-  PGBOSS_CA_PATH: /tmp/pgboss-certs/{{ .sslAuth.caFileName }}
+  PGBOSS_CERTS_MOUNT_PATH: {{ .sslAuth.mountPath | quote }}
+  PGBOSS_CERT_PATH: /tmp/certs-pgboss/{{ .sslAuth.certFileName }}
+  PGBOSS_KEY_PATH: /tmp/certs-pgboss/{{ .sslAuth.keyFileName }}
+  PGBOSS_CA_PATH: /tmp/certs-pgboss/{{ .sslAuth.caFileName }}
   {{- else }}
   PGBOSS_ENABLE_SSL_AUTH: "false"
   {{- end }}

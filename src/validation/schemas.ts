@@ -1,7 +1,7 @@
 import { JSONSchemaType } from 'ajv';
 import { QueueSettings } from '../cli/commands/append/interfaces';
 
-const ZOOM_LEVEL_MINIMUM = 0;
+const ZOOM_LEVEL_MINIMUM = 1;
 const ZOOM_LEVEL_MAXIMUM = 20;
 
 export interface AppendEntity {

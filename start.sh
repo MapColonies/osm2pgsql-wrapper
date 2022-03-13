@@ -8,4 +8,10 @@ then
   chmod 400 $POSTGRES_CERTIFICATES_PATH/*.key
 fi
 
+if [ "$PGBOSS_ENABLE_SSL_AUTH" = "true" ]
+then
+  cp $PGBOSS_CERTS_MOUNT_PATH/* $POSTGRES_CERTIFICATES_PATH
+  chmod 400 $POSTGRES_CERTIFICATES_PATH/*.key
+fi
+
 node ./index.js "$@"

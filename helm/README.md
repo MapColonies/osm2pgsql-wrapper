@@ -10,6 +10,8 @@
 
 **postgres:**
 
+the postgres for osm2pgsql
+
 - `postgres.host` - results as `PGHOST`
 - `postgres.username` - results as `PGUSER`
 - `postgres.password` - results as `PGPASSWORD`
@@ -30,6 +32,23 @@
 - `s3.secretKey` - s3 secret access key, results as `AWS_SECRET_ACCESS_KEY`
 - `s3.acl` - The Access-Control-List for the uploaded objects [read more](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl) results as `S3_ACL`
 
+**pgboss:**
+
+pgboss is used for queueing the payload if requested on `append` command
+
+- `pgboss.host` - results as `PGBOSS_HOST`
+- `pgboss.username` - results as `PGBOSS_USERNAME`
+- `pgboss.password` - results as `PGBOSS_PASSWORD`
+- `pgboss.database` - results as `PGBOSS_DATABASE`
+- `pgboss.schema` - results as `PGBOSS_SCHEMA`
+- `pgboss.port` - defaults to 5432, results as `PGBOSS_PORT`
+- `pgboss.sslAuth.enabled` - enabling postgres certificate auth
+- `pgboss.sslAuth.secretName` - secret name containing the certificates for `pgboss-cert-conf` volume
+- `pgboss.sslAuth.mountPath` - the path for the mounted certificates
+- `pgboss.sslAuth.certFileName` - the name of the cert file
+- `pgboss.sslAuth.keyFileName` - the name of the key file
+- `pgboss.sslAuth.caFileName` - the name of the root ca file
+
 **environment:**
 
 - `env.httpClient.timeout` - the amount of ms until a timeout is determinded by the http client
@@ -40,11 +59,19 @@
 **cli:**
 
 - `cli.command` - the command to be run create or append
+
+*append*
 - `cli.append.replicationUrl` - the source of replication
-- `cli.append.limit.value` - should limit the amount of appends in a single run
+- `cli.append.limit.enabled` - should limit the amount of appends in a single run
 - `cli.append.limit.value` - the maximum amount of appends for a project as a whole in a single run
 - `cli.append.config.mountPath` - the path for the config to be mounted to
 - `cli.append.config.fileName` - the config file name to be used on append
+- `cli.append.uploadTargets` - list of the targets the expired tiles should be uploaded to, choices are `s3` (the genereated output expire.list from osm2pgsql) or `queue` (a payload consisting the bounding boxes of the expired tiles on the top zoom level). the list items are separated with comma without spaces e.g. "s3,queue"
+- `cli.append.queue.name` - the name of the queue the payload should be uploaded to
+- `cli.append.queue.minZoom` - the queue payload min zoom
+- `cli.append.queue.maxZoom` - the queue payload max zoom
+
+*create*
 - `cli.create.dumpSourceType` - the type of the dump source local-file, remote-url or dump-server
 - `cli.create.dumpSource` - the dump source used for creation
 - `cli.create.s3LuaScriptKey` - the project's lua script key located in s3

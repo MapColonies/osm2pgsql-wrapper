@@ -16,7 +16,7 @@ import { QueueProvider } from '../../queue/queueProvider';
 
 type RegisterOnContainerMiddlewareFactory<T> = (container: DependencyContainer) => MiddlewareFunction<T>;
 
-export const s3RegisterationMiddlewareFactory: RegisterOnContainerMiddlewareFactory<GlobalArguments> = (dependencyContainer) => {
+export const s3RegistrationMiddlewareFactory: RegisterOnContainerMiddlewareFactory<GlobalArguments> = (dependencyContainer) => {
   const middleware = (args: Arguments<GlobalArguments>): void => {
     const { s3Endpoint, s3BucketName } = args;
 
@@ -61,8 +61,8 @@ export const uploadTargetsRegistrationMiddlewareFactory: RegisterOnContainerMidd
         configStore.set('queue', queueConfig);
 
         const config = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
-        const dbConfig = config.get<DbConfig>('db');
-        const pgBossInstance = pgBossFactory(dbConfig);
+        const pgBossDbConfig = config.get<DbConfig>('pgboss');
+        const pgBossInstance = pgBossFactory(pgBossDbConfig);
         registerDependencies([
           { token: PgBoss, provider: { useValue: pgBossInstance } },
           {
