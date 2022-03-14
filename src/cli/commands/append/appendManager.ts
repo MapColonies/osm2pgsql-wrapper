@@ -65,7 +65,7 @@ export class AppendManager {
     await this.stateTracker.getScriptsFromS3ToFs(scriptsKeys);
 
     while (!this.stateTracker.isUpToDateOrReachedLimit()) {
-      // await this.appendCurrentState(replicationUrl);
+      await this.appendCurrentState(replicationUrl);
 
       if (this.shouldGenerateExpireOutput) {
         await this.uploadExpired();

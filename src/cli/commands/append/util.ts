@@ -3,7 +3,7 @@ import SphericalMercator from '@mapbox/sphericalmercator';
 import { Sort } from '../../../common/types';
 import { convertStreamToLinesArr, sortArrAlphabetically } from '../../../common/util';
 
-interface Coordinates {
+interface Tile {
   x: number;
   y: number;
 }
@@ -16,8 +16,8 @@ const fetchMaxZoom = (sortedTiles: string[], sort?: Sort): number => {
   return parseInt(zoom);
 };
 
-const buildCoordinatesMatrix = (sortedTiles: string[], zoom: number): Coordinates[][] => {
-  const coordinatesMatrix: Coordinates[][] = [];
+const buildTileMatrix = (sortedTiles: string[], zoom: number): Tile[][] => {
+  const tileMatrix: Tile[][] = [];
 
   sortedTiles.forEach((expireTileLine) => {
     const elements = expireTileLine.split('/');
@@ -29,34 +29,35 @@ const buildCoordinatesMatrix = (sortedTiles: string[], zoom: number): Coordinate
 
     const currentX = parseInt(elements[1]);
     const currentY = parseInt(elements[2]);
+    const currentTile = { x: currentX, y: currentY };
 
-    if (coordinatesMatrix.length === 0) {
-      coordinatesMatrix.push([{ x: currentX, y: currentY }]);
+    if (tileMatrix.length === 0) {
+      tileMatrix.push([currentTile]);
       return;
     }
 
-    const lastBox = coordinatesMatrix.length - 1;
-    const lastCoordinatesInBox = coordinatesMatrix[lastBox].length - 1;
-    const lastCoordinates = coordinatesMatrix[lastBox][lastCoordinatesInBox];
+    const lastRangeIndex = tileMatrix.length - 1;
+    const lastTileInRangeIndex = tileMatrix[lastRangeIndex].length - 1;
+    const lastTile = tileMatrix[lastRangeIndex][lastTileInRangeIndex];
 
-    if (currentX === lastCoordinates.x && currentY === lastCoordinates.y - 1) {
-      coordinatesMatrix[lastBox].push({ x: currentX, y: currentY });
+    if (currentTile.x === lastTile.x && currentTile.y === lastTile.y - 1) {
+      tileMatrix[lastRangeIndex].push(currentTile);
       return;
     }
 
-    coordinatesMatrix.push([{ x: currentX, y: currentY }]);
+    tileMatrix.push([currentTile]);
   });
 
-  return coordinatesMatrix;
+  return tileMatrix;
 };
 
-const buildBboxArr = (coordinatesMatrix: Coordinates[][], zoom: number): BoundingBox[] => {
-  const bboxArray = coordinatesMatrix.map((coordinatesRange) => {
-    const first = coordinatesRange[0];
-    const last = coordinatesRange[coordinatesRange.length - 1];
+const buildBboxArr = (tileMatrix: Tile[][], zoom: number): BoundingBox[] => {
+  const bboxArray = tileMatrix.map((tileRange) => {
+    const bottomTile = tileRange[0];
+    const topTile = tileRange[tileRange.length - 1];
 
-    const [west, north] = sphericalMercatorUtil.bbox(first.x, first.y, zoom);
-    const [south, east] = sphericalMercatorUtil.bbox(last.x, last.y, zoom);
+    const [west, south] = sphericalMercatorUtil.bbox(bottomTile.x, bottomTile.y, zoom); // getting min longitude and min latitude
+    const [,,east, north] = sphericalMercatorUtil.bbox(topTile.x, topTile.y, zoom); // getting max longitude and max latitude
 
     return { west, south, east, north };
   });
@@ -71,7 +72,7 @@ export const expireListStreamToBboxArray = async (expireListStream: NodeJS.Reada
 
   const zoom = fetchMaxZoom(sortedExpireList, 'desc');
 
-  const matrix = buildCoordinatesMatrix(sortedExpireList, zoom);
+  const matrix = buildTileMatrix(sortedExpireList, zoom);
 
   return buildBboxArr(matrix, zoom);
 };
