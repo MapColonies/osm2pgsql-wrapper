@@ -3,6 +3,7 @@ import { logMethod } from '@map-colonies/telemetry';
 import { trace } from '@opentelemetry/api';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import jsLogger, { LoggerOptions } from '@map-colonies/js-logger';
+import axios from 'axios';
 import { SERVICES, CLI_NAME, CLI_BUILDER, EXIT_CODE, ExitCodes } from './common/constants';
 import { tracing } from './common/tracing';
 import { InjectionObject, registerDependencies } from './common/dependencyRegistration';
@@ -11,7 +12,6 @@ import { appendCommandFactory } from './cli/commands/append/appendFactory';
 import { APPEND_COMMAND_FACTORY, APPEND_MANAGER_FACTORY } from './cli/commands/append/constants';
 import { appendManagerFactory } from './cli/commands/append/appendManagerFactory';
 import { ConfigStore } from './common/configStore';
-import { httpClientFactory } from './httpClient/httpClientFactory';
 import { CREATE_COMMAND_FACTORY, CREATE_MANAGER_FACTORY } from './cli/commands/create/constants';
 import { createManagerFactory } from './cli/commands/create/createManagerFactory';
 import { createCommandFactory } from './cli/commands/create/createFactory';
@@ -30,27 +30,27 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     // @ts-expect-error the signature is wrong
     const logger = jsLogger({ ...loggerConfig, hooks: { logMethod } });
 
+    const configStore = new ConfigStore();
+
     const httpClientConfig = config.get<object>('httpClient');
-    const httpClient = httpClientFactory(httpClientConfig);
+    const axiosClient = axios.create(httpClientConfig);
 
     tracing.start();
     const tracer = trace.getTracer(CLI_NAME);
     shutdownHandler.addFunction(tracing.stop.bind(tracing));
 
-    const configStore = new ConfigStore();
-
     const dependencies: InjectionObject<unknown>[] = [
-      { token: ShutdownHandler, provider: { useValue: shutdownHandler } },
+      { token: SERVICES.LOGGER, provider: { useValue: logger } },
+      { token: SERVICES.CONFIG, provider: { useValue: config } },
+      { token: SERVICES.CONFIG_STORE, provider: { useValue: configStore } },
       { token: CLI_BUILDER, provider: { useFactory: cliBuilderFactory } },
       { token: CREATE_COMMAND_FACTORY, provider: { useFactory: createCommandFactory } },
       { token: CREATE_MANAGER_FACTORY, provider: { useFactory: createManagerFactory } },
       { token: APPEND_COMMAND_FACTORY, provider: { useFactory: appendCommandFactory } },
       { token: APPEND_MANAGER_FACTORY, provider: { useFactory: appendManagerFactory } },
-      { token: SERVICES.CONFIG, provider: { useValue: config } },
-      { token: SERVICES.LOGGER, provider: { useValue: logger } },
+      { token: ShutdownHandler, provider: { useValue: shutdownHandler } },
       { token: SERVICES.TRACER, provider: { useValue: tracer } },
-      { token: SERVICES.HTTP_CLIENT, provider: { useValue: httpClient } },
-      { token: SERVICES.CONFIG_STORE, provider: { useValue: configStore } },
+      { token: SERVICES.HTTP_CLIENT, provider: { useValue: axiosClient } },
       { token: EXIT_CODE, provider: { useValue: ExitCodes.SUCCESS } },
     ];
 

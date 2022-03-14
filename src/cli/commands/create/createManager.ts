@@ -7,7 +7,7 @@ import { createDirectory, getFileDirectory, streamToFs } from '../../../common/u
 import { DumpClient, DumpMetadataResponse } from '../../../httpClient/dumpClient';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';
 import { BucketDoesNotExistError, DumpServerEmptyResponseError } from '../../../common/errors';
-import { OsmCommandRunner } from '../../../commandRunner/OsmCommandRunner';
+import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { DumpSourceType } from './constants';
 
 export class CreateManager {

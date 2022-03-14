@@ -10,7 +10,7 @@ import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { AppendEntity } from '../../../validation/schemas';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';
 import { ExpireTilesUploadTarget } from '../../../common/types';
-import { OsmCommandRunner } from '../../../commandRunner/OsmCommandRunner';
+import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { QueueProvider } from '../../../queue/queueProvider';
 import { RequestAlreadyInQueueError } from '../../../common/errors';
 import { QueueSettings, TileRequestQueuePayload } from './interfaces';

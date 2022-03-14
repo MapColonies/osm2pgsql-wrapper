@@ -10,7 +10,7 @@
 
 **postgres:**
 
-the postgres for osm2pgsql
+the postgres database target for osm2pgsql
 
 - `postgres.host` - results as `PGHOST`
 - `postgres.username` - results as `PGUSER`
