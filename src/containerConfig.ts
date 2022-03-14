@@ -51,7 +51,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       { token: ShutdownHandler, provider: { useValue: shutdownHandler } },
       { token: SERVICES.TRACER, provider: { useValue: tracer } },
       { token: SERVICES.HTTP_CLIENT, provider: { useValue: axiosClient } },
-      { token: EXIT_CODE, provider: { useValue: ExitCodes.SUCCESS } },
+      { token: EXIT_CODE, provider: { useValue: ExitCodes.GENERAL_ERROR } },
     ];
 
     const container = registerDependencies(dependencies, options?.override, options?.useChild);

@@ -1,11 +1,10 @@
-import { existsSync } from 'fs';
 import { Argv, CommandModule, Arguments } from 'yargs';
-import { isWebUri } from 'valid-url';
 import { Logger } from '@map-colonies/js-logger';
-import { container, FactoryFunction } from 'tsyringe';
+import { FactoryFunction } from 'tsyringe';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
 import { ErrorWithExitCode } from '../../../common/errors';
+import { dumpSourceCheck } from '../../checks';
 import { CreateManager } from './createManager';
 import { command, describe, CREATE_MANAGER_FACTORY, DumpSourceType } from './constants';
 
@@ -40,22 +39,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         demandOption: true,
       })
-      .check((argv) => {
-        const { dumpSourceType, dumpSource } = argv;
-
-        const errorPrefix = `provided dump source of type ${dumpSourceType} is not valid`;
-
-        if (dumpSourceType === DumpSourceType.LOCAL_FILE) {
-          if (!existsSync(dumpSource)) {
-            throw new Error(`${errorPrefix}, ${dumpSource} does not exist locally`);
-          }
-        } else if (isWebUri(dumpSource) === undefined) {
-          throw new Error(`${errorPrefix}, ${dumpSource} is not a valid web uri`);
-        }
-
-        return true;
-      });
-
+      .check(dumpSourceCheck());
     return args as Argv<CreateArguments>;
   };
 
@@ -68,6 +52,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       await manager.create(s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType);
 
       logger.info(`finished successfully the creation of ${s3ProjectId}`);
+      dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
       if (error instanceof ErrorWithExitCode) {
@@ -76,7 +61,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         logger.error((error as Error).message);
       }
 
-      container.register(EXIT_CODE, { useValue: exitCode });
+      dependencyContainer.register(EXIT_CODE, { useValue: exitCode });
       logger.warn(`an error occurred, exiting with code ${exitCode}`);
     }
   };
