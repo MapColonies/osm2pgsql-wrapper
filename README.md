@@ -63,9 +63,9 @@ On append a config representing the job is required, the config specifies each s
 
 The output of the append command of `osm2pgsql` is an expire list of tiles in requested zoom levels.
 
-The expired tiles list can be uploaded to a source of your choice, `s3` or `queue`.
+The expired tiles list can be uploaded\pushed to a source of your choice, `s3`, `queue` (using `pgboss`) or both.
 - For the `s3` option the expired tiles a.k.a `expire.list` of each sub part will be uploaded to the bucket as well under `/projectId/subId/sequenceNumber/expire.list`.
-- For the `queue` option the expired tiles will be parsed into bounding boxes in WGS84 and will be pushed into a job queue for further processing
+- For the `queue` option the expired tiles will be parsed into bounding boxes in WGS84 and pushed into the `pgboss` job queue for further processing
 
 Before appending a `state.txt` needs to be placed on the bucket under the projectId, the state's `sequenceNumber` will be updated for each append. On the first append the `sequenceNumber` of the creation dump needs to be placed in the `state.txt`.
 

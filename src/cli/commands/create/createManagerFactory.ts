@@ -1,6 +1,6 @@
 import { Logger } from '@map-colonies/js-logger';
 import { FactoryFunction } from 'tsyringe';
-import { OsmCommandRunner } from '../../../commandRunner/OsmCommandRunner';
+import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { SERVICES } from '../../../common/constants';
 import { DumpClient } from '../../../httpClient/dumpClient';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';

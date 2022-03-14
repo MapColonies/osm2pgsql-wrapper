@@ -1,6 +1,6 @@
 import { Logger } from '@map-colonies/js-logger';
 import { FactoryFunction } from 'tsyringe';
-import { OsmCommandRunner } from '../../../commandRunner/OsmCommandRunner';
+import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { SERVICES } from '../../../common/constants';
 import { IConfig } from '../../../common/interfaces';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
