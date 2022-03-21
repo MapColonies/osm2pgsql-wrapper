@@ -57,7 +57,7 @@ const buildBboxArr = (tileMatrix: Tile[][], zoom: number): BoundingBox[] => {
     const topTile = tileRange[tileRange.length - 1];
 
     const [west, south] = sphericalMercatorUtil.bbox(bottomTile.x, bottomTile.y, zoom); // getting min longitude and min latitude
-    const [,,east, north] = sphericalMercatorUtil.bbox(topTile.x, topTile.y, zoom); // getting max longitude and max latitude
+    const [, , east, north] = sphericalMercatorUtil.bbox(topTile.x, topTile.y, zoom); // getting max longitude and max latitude
 
     return { west, south, east, north };
   });
