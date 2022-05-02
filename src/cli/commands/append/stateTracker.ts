@@ -60,7 +60,6 @@ export class StateTracker {
     const stateStream = await this.s3Client.getObjectWrapper(stateKey);
     stateContent = await streamToString(stateStream);
     this.start = this.fetchSequenceNumberSafely(stateContent);
-    this.current = this.start + 1;
 
     this.logger.info(`start sequence number ${this.start}`);
   }
@@ -91,11 +90,11 @@ export class StateTracker {
   public async updateRemoteState(): Promise<void> {
     this.logger.info(`updating remote state from ${this.current} to ${this.current + 1}`);
 
+    this.current++;
     stateContent = stateContent.replace(SEQUENCE_NUMBER_REGEX, `sequenceNumber=${this.current}`);
     const stateBuffer = Buffer.from(stateContent, 'utf-8');
     const stateKey = join(this.projectId, STATE_FILE);
     await this.s3Client.putObjectWrapper(stateKey, stateBuffer);
-    this.current++;
 
     this.logger.info(`successfully updated the remote state source of ${this.projectId}, current state ${this.current}`);
   }
