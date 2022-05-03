@@ -1,10 +1,9 @@
 import yargs from 'yargs/yargs';
-import { Argv } from 'yargs';
-import { S3Client } from '@aws-sdk/client-s3';
+import { Argv, CommandModule } from 'yargs';
 import { FactoryFunction } from 'tsyringe';
-import { SERVICES, S3_REGION } from './common/constants';
-import { AppendCommand } from './commands/append/append';
-import { CreateCommand } from './commands/create/create';
+import { CREATE_COMMAND_FACTORY } from './commands/create/constants';
+import { APPEND_COMMAND_FACTORY } from './commands/append/constants';
+import { s3RegistrationMiddlewareFactory } from './middlewares';
 
 export interface GlobalArguments {
   s3Endpoint: string;
@@ -35,18 +34,10 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
     .help('h')
     .alias('h', 'help');
 
-  args.middleware((argv) => {
-    const { s3Endpoint } = argv;
-    const client = new S3Client({
-      endpoint: s3Endpoint,
-      region: S3_REGION,
-      forcePathStyle: true,
-    });
-    dependencyContainer.register(SERVICES.S3, { useValue: client });
-  });
+  args.middleware(s3RegistrationMiddlewareFactory(dependencyContainer));
 
-  args.command(dependencyContainer.resolve(CreateCommand));
-  args.command(dependencyContainer.resolve(AppendCommand));
+  args.command(dependencyContainer.resolve<CommandModule>(CREATE_COMMAND_FACTORY));
+  args.command(dependencyContainer.resolve<CommandModule>(APPEND_COMMAND_FACTORY));
 
   return args;
 };

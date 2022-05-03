@@ -32,7 +32,7 @@ export class DumpClient extends BaseClient {
     this.logger.info(`invoking GET to ${dumpServerUrl}/${DUMP_METADATA_ENDPOINT}`);
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
-    return this.invokeHttp<DumpMetadataResponse[], AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, DUMP_METADATA_ENDPOINT, {
+    return this.invokeHttp<DumpMetadataResponse[], undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, DUMP_METADATA_ENDPOINT, {
       baseURL: dumpServerUrl,
       params,
       paramsSerializer: (params: DumpMetadataRequestParams) => qs.stringify(params, { indices: false }),
@@ -43,7 +43,7 @@ export class DumpClient extends BaseClient {
     this.logger.info(`invoking GET to ${url}`);
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
-    return this.invokeHttp<NodeJS.ReadStream, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, url, {
+    return this.invokeHttp<NodeJS.ReadStream, undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, url, {
       responseType: 'stream',
     });
   }
