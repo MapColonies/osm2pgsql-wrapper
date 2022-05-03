@@ -19,6 +19,10 @@ data:
   LIMIT: {{ .Values.cli.append.limit.value | quote }}
   {{- end }}
   REPLICATION_URL: {{ .Values.cli.append.replicationUrl | quote }}
+  UPLOAD_TARGETS: {{ .Values.cli.append.uploadTargets | quote }}
+  NAME: {{ .Values.cli.append.queue.name | quote }}
+  MIN_ZOOM: {{ .Values.cli.append.queue.minZoom | quote }}
+  MAX_ZOOM: {{ .Values.cli.append.queue.maxZoom | quote }}
   {{- end }}
   {{- if eq .Values.cli.command "create" }}
   DUMP_SOURCE_TYPE: {{ .Values.cli.create.dumpSourceType | quote }}

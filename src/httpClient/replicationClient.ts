@@ -14,7 +14,7 @@ export class ReplicationClient extends BaseClient {
     this.logger.info(`invoking GET to ${url}/${STATE_FILE}`);
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
-    return this.invokeHttp<string, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, STATE_FILE, {
+    return this.invokeHttp<string, undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, STATE_FILE, {
       baseURL: url,
     });
   }
@@ -23,7 +23,7 @@ export class ReplicationClient extends BaseClient {
     this.logger.info(`invoking GET to ${base}/${diffUrl}`);
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
-    return this.invokeHttp<NodeJS.ReadStream, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, diffUrl, {
+    return this.invokeHttp<NodeJS.ReadStream, undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, diffUrl, {
       baseURL: base,
       responseType: 'stream',
     });

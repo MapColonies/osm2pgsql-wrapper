@@ -53,8 +53,12 @@ spec:
                   mountPath: {{ .Values.cli.append.config.mountPath }}
               {{- end }}
               {{- if .Values.postgres.sslAuth.enabled }}
-                - name: cert-conf
+                - name: postgres-cert-conf
                   mountPath: {{ .Values.postgres.sslAuth.mountPath }}
+              {{- end }}
+              {{- if .Values.pgboss.sslAuth.enabled }}
+                - name: pgboss-cert-conf
+                  mountPath: {{ .Values.pgboss.sslAuth.mountPath }}
               {{- end }}
           volumes:
             {{- if eq .Values.cli.command "append" }}
@@ -63,8 +67,13 @@ spec:
                 name: {{ $releaseName }}-{{ $chartName }}-schema-configmap
             {{- end }}
             {{- if .Values.postgres.sslAuth.enabled }}
-            - name: cert-conf
+            - name: postgres-cert-conf
               secret:
                 secretName: {{ .Values.postgres.sslAuth.secretName }}
+            {{- end }}
+            {{- if .Values.pgboss.sslAuth.enabled }}
+            - name: pgboss-cert-conf
+              secret:
+                secretName: {{ .Values.pgboss.sslAuth.secretName }}
             {{- end }}
 {{- end -}}

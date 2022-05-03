@@ -59,5 +59,25 @@
       "__name": "OSMIUM_PROGRESS",
       "__format": "boolean"
     }
+  },
+  "pgboss": {
+    "host": "PGBOSS_HOST",
+    "port": {
+      "__name": "PGBOSS_PORT",
+      "__format": "number"
+    },
+    "user": "PGBOSS_USERNAME",
+    "password": "PGBOSS_PASSWORD",
+    "schema": "PGBOSS_SCHEMA",
+    "enableSslAuth": {
+      "__name": "PGBOSS_ENABLE_SSL_AUTH",
+      "__format": "boolean"
+    },
+    "sslPaths": {
+      "ca": "PGBOSS_CA_PATH",
+      "key": "PGBOSS_KEY_PATH",
+      "cert": "PGBOSS_CERT_PATH"
+    },
+    "database": "PGBOSS_DATABASE"
   }
 }

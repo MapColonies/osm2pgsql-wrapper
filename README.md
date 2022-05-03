@@ -60,7 +60,12 @@ After the initial creation of a project, data can be appended.
 A project can be divided into multiple sub parts, each sub part's lua script needs to be placed in the bucket under the projectId meaning with the projectId as the script's key prefix.
 
 On append a config representing the job is required, the config specifies each sub part's s3 lua script key and it's expired tiles zoom levels.
-The expired tiles of each sub part will be uploaded to the bucket as well under `/projectId/subId/sequenceNumber/expire.list`.
+
+The output of the append command of `osm2pgsql` is an expire list of tiles in requested zoom levels.
+
+The expired tiles list can be uploaded\pushed to a source of your choice, `s3`, `queue` (using `pgboss`) or both.
+- For the `s3` option the expired tiles a.k.a `expire.list` of each sub part will be uploaded to the bucket as well under `/projectId/subId/sequenceNumber/expire.list`.
+- For the `queue` option the expired tiles will be parsed into bounding boxes in WGS84 and pushed into the `pgboss` job queue for further processing
 
 Before appending a `state.txt` needs to be placed on the bucket under the projectId, the state's `sequenceNumber` will be updated for each append. On the first append the `sequenceNumber` of the creation dump needs to be placed in the `state.txt`.
 
@@ -89,22 +94,24 @@ Postgres authentication should be defined by the following env varaibles: `PGHOS
 
 *Exit codes mapping:*
 
-| Exit Code Number | Name                      | Meaning                                                                         |
-|------------------|---------------------------|---------------------------------------------------------------------------------|
-| 0                | success                   | the program finished successfuly.                                               |
-| 1                | general error             | catchall for general errors.                                                    |
-| 100              | osm2pgsql error           | failure occoured while running an osm2pgsql command.                            |
-| 101              | state fetch error         | failure occoured while interacting with s3.                                     |
-| 102              | invalid state error       | state file located in s3 is invalid.                                            |
-| 103              | remote service response error           | remote service responded with an error.                                                               |
-| 104              | remote service unavailable            | could not reach to remote service.                                                            |
-| 105              | dump server empty response                | dump server could not find any dumps metadata.                                         |
-| 106              | osmium error                | failure occoured while running an osmium. |
+| Exit Code Number | Name                          | Meaning                                                                         |
+|------------------|-------------------------------|---------------------------------------------------------------------------------|
+| 0                | success                       | the program finished successfuly.                                               |
+| 1                | general error                 | catchall for general errors.                                                    |
+| 100              | osm2pgsql error               | failure occoured while running an osm2pgsql command.                            |
+| 101              | state fetch error             | failure occoured while interacting with s3.                                     |
+| 102              | invalid state error           | state file located in s3 is invalid.                                            |
+| 103              | remote service response error | remote service responded with an error.                                         |
+| 104              | remote service unavailable    | could not reach to remote service.                                              |
+| 105              | dump server empty response    | dump server could not find any dumps metadata.                                  |
+| 106              | osmium error                  | failure occoured while running an osmium.                                       |
+| 107              | queue error                   | failure occoured while interacting with the queue.                              |
+| 108              | bucket does not exist error   | the requested bucket does not exist.                                            |
 
 ## Building and Running
 
 ### Build argument variables
-- `NODE_VERSION` - the version of node. currently supports 14 and 16, defaults to 14
+- `NODE_VERSION` - the version of node. currently supports 14 and 16, defaults to 16
 - `OSM2PGSQL_TAG` - the tag version of osm2pgsql to be built, by defaults to 1.5.1.
 - `OSMIUM_TOOL_TAG` - the tag version of osm2pgsql to be built, by defaults to v1.13.2.
 - `PROTOZERO_TAG` - the tag version of osm2pgsql to be built, by defaults to v1.7.0.
