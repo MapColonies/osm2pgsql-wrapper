@@ -62,7 +62,7 @@ pgboss is used for queueing the payload if requested on `append` command
 
 *append*
 - `cli.append.replicationUrl` - the source of replication
-- `cli.append.limit.enabled` - should limit the amount of appends in a single run
+- `cli.append.limit.enabled` - a boolean flag indicating the limiting of appends in a single run
 - `cli.append.limit.value` - the maximum amount of appends for a project as a whole in a single run
 - `cli.append.config.mountPath` - the path for the config to be mounted to
 - `cli.append.config.fileName` - the config file name to be used on append
