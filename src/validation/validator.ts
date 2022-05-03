@@ -12,7 +12,7 @@ export interface ValidationResponse<T> {
   content?: T;
 }
 
-export function validateBySchema<T>(content: unknown, schema: JSONSchemaType<T>): ValidationResponse<T> {
+export function ajvWrapper<T>(content: unknown, schema: JSONSchemaType<T>): ValidationResponse<T> {
   const isValid = ajv.validate(schema, content);
   if (!isValid) {
     const generalError = `invalid content`;
