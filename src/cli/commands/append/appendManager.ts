@@ -81,7 +81,7 @@ export class AppendManager {
   }
 
   private async appendNextState(replicationUrl: string): Promise<void> {
-    this.logger.info(`${this.stateTracker.projectId} appending sequence number ${this.stateTracker.nextState()}`);
+    this.logger.info(`${this.stateTracker.projectId} appending sequence number ${this.stateTracker.nextState}`);
 
     const diffPath = await this.getDiffToFs(replicationUrl);
 
@@ -93,12 +93,12 @@ export class AppendManager {
 
     await Promise.all(appendPromises);
 
-    this.logger.info(`all appends completed successfuly for state ${this.stateTracker.nextState()}`);
+    this.logger.info(`all appends completed successfuly for state ${this.stateTracker.nextState}`);
   }
 
   private async uploadExpired(): Promise<void> {
     const uploadPromises = this.entities.map(async (entity) => {
-      const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState()}.${EXPIRE_LIST}`;
+      const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState}.${EXPIRE_LIST}`;
       const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
 
       for await (const target of this.uploadTargets) {
@@ -127,7 +127,7 @@ export class AppendManager {
     }
 
     if (this.shouldGenerateExpireOutput) {
-      const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState()}.${EXPIRE_LIST}`;
+      const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState}.${EXPIRE_LIST}`;
       const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
       appendArgs.push(`--expire-output=${localExpireTilesListPath}`);
     }
@@ -141,7 +141,7 @@ export class AppendManager {
 
   private async uploadExpiredListToS3(expireListPath: string, entityId: string): Promise<void> {
     const expireTilesListBuffer = await fsPromises.readFile(expireListPath);
-    const expireListKey = join(this.stateTracker.projectId, entityId, this.stateTracker.nextState().toString(), EXPIRE_LIST);
+    const expireListKey = join(this.stateTracker.projectId, entityId, this.stateTracker.nextState.toString(), EXPIRE_LIST);
 
     await this.s3Client.putObjectWrapper(expireListKey, expireTilesListBuffer);
   }
@@ -170,9 +170,9 @@ export class AppendManager {
   private async getDiffToFs(replicationUrl: string): Promise<string> {
     this.logger.info(`getting osm change file from remote replication source to file system`);
 
-    const [top, bottom, sequenceNumber] = getDiffDirPathComponents(this.stateTracker.nextState());
+    const [top, bottom, sequenceNumber] = getDiffDirPathComponents(this.stateTracker.nextState);
     const diffKey = join(top, bottom, `${sequenceNumber}.${DIFF_FILE_EXTENTION}`);
-    const localDiffPath = join(DATA_DIR, `${this.stateTracker.nextState()}.${DIFF_FILE_EXTENTION}`);
+    const localDiffPath = join(DATA_DIR, `${this.stateTracker.nextState}.${DIFF_FILE_EXTENTION}`);
 
     const response = await this.replicationClient.getDiff(replicationUrl, diffKey);
     await streamToFs(response.data, localDiffPath);
@@ -183,7 +183,7 @@ export class AppendManager {
   private async simplifyDiff(diffPath: string): Promise<string> {
     this.logger.info(`simplifying osm change file by removing all duplicates`);
 
-    const simplifiedDiffPath = join(DATA_DIR, `${this.stateTracker.nextState()}.simplified.${DIFF_FILE_EXTENTION}`);
+    const simplifiedDiffPath = join(DATA_DIR, `${this.stateTracker.nextState}.simplified.${DIFF_FILE_EXTENTION}`);
     await this.osmCommandRunner.mergeChanges([`${diffPath}`, `--output=${simplifiedDiffPath}`]);
     return simplifiedDiffPath;
   }

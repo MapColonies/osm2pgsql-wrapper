@@ -25,6 +25,10 @@ export class StateTracker {
     private readonly replicationClient: ReplicationClient
   ) {}
 
+  public get nextState(): number {
+    return this.current + 1;
+  }
+
   public async prepareEnvironment(projectId: string, limit?: number): Promise<void> {
     this.logger.info(`preparing environment, project id: ${projectId}`);
 
@@ -89,9 +93,9 @@ export class StateTracker {
   }
 
   public async updateRemoteState(): Promise<void> {
-    this.logger.info(`updating remote state from ${this.current} to ${this.nextState()}`);
+    this.logger.info(`updating remote state from ${this.current} to ${this.nextState}`);
 
-    this.current = this.nextState();
+    this.current = this.nextState;
     stateContent = stateContent.replace(SEQUENCE_NUMBER_REGEX, `sequenceNumber=${this.current}`);
     const stateBuffer = Buffer.from(stateContent, 'utf-8');
     const stateKey = join(this.projectId, STATE_FILE);
@@ -107,10 +111,6 @@ export class StateTracker {
       );
       (this.remainingAppends as number)--;
     }
-  }
-
-  public nextState(): number {
-    return this.current + 1;
   }
 
   private fetchSequenceNumberSafely(content: string): number {
