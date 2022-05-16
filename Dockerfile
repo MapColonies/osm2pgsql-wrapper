@@ -3,7 +3,8 @@ ARG NODE_VERSION=16
 FROM ubuntu:20.04 as build
 
 ENV DEBIAN_FRONTEND=noninteractive
-ARG OSM2PGSQL_TAG=1.5.1
+ARG OSM2PGSQL_REPOSITORY=https://github.com/MapColonies/osm2pgsql.git
+ARG OSM2PGSQL_COMMIT_SHA=dd8651684baf7d5643dcc8e3f34515992fe60aef
 ARG OSMIUM_TOOL_TAG=v1.13.2
 ARG PROTOZERO_TAG=v1.7.0
 ARG LIBOSMIUM_TAG=v2.17.2
@@ -25,8 +26,9 @@ RUN apt-get -y update && apt -y install \
   git-core \
   libboost-program-options-dev
 
-RUN git clone -b ${OSM2PGSQL_TAG} --single-branch https://github.com/openstreetmap/osm2pgsql.git ./osm2pgsql && \
+RUN git clone ${OSM2PGSQL_REPOSITORY} ./osm2pgsql && \
   cd osm2pgsql && \
+  git checkout ${OSM2PGSQL_COMMIT_SHA} && \
   mkdir build && \
   cd build && \
   cmake .. && \
