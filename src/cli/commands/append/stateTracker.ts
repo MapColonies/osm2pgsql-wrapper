@@ -13,7 +13,7 @@ let stateContent: string;
 @singleton()
 export class StateTracker {
   public start = DEFAULT_SEQUENCE_NUMBER;
-  public end = DEFAULT_SEQUENCE_NUMBER;
+  public replicationEndState = DEFAULT_SEQUENCE_NUMBER;
   public current = DEFAULT_SEQUENCE_NUMBER;
   public projectId = '';
   private remainingAppends?: number;
@@ -24,6 +24,10 @@ export class StateTracker {
     private readonly s3Client: S3ClientWrapper,
     private readonly replicationClient: ReplicationClient
   ) {}
+
+  public get nextState(): number {
+    return this.current + 1;
+  }
 
   public async prepareEnvironment(projectId: string, limit?: number): Promise<void> {
     this.logger.info(`preparing environment, project id: ${projectId}`);
@@ -50,7 +54,7 @@ export class StateTracker {
       this.logger.info(`append limitation of ${this.totalRequestedAppends as number} has reached`);
       return true;
     }
-    return this.current === this.end;
+    return this.current === this.replicationEndState;
   }
 
   public async getStartSequenceNumber(): Promise<void> {
@@ -60,17 +64,18 @@ export class StateTracker {
     const stateStream = await this.s3Client.getObjectWrapper(stateKey);
     stateContent = await streamToString(stateStream);
     this.start = this.fetchSequenceNumberSafely(stateContent);
+    this.current = this.start;
 
     this.logger.info(`start sequence number ${this.start}`);
   }
 
-  public async getEndSequenceNumber(replicationUrl: string): Promise<void> {
+  public async getReplicationSequenceNumber(replicationUrl: string): Promise<void> {
     this.logger.info(`getting the end sequence number from remote replication source`);
 
     const response = await this.replicationClient.getState(replicationUrl);
-    this.end = this.fetchSequenceNumberSafely(response.data);
+    this.replicationEndState = this.fetchSequenceNumberSafely(response.data);
 
-    this.logger.info(`end sequence number ${this.end}`);
+    this.logger.info(`replication sequence number ${this.replicationEndState}`);
   }
 
   public async getScriptsFromS3ToFs(keys: string[]): Promise<void> {
@@ -88,9 +93,9 @@ export class StateTracker {
   }
 
   public async updateRemoteState(): Promise<void> {
-    this.logger.info(`updating remote state from ${this.current} to ${this.current + 1}`);
+    this.logger.info(`updating remote state from ${this.current} to ${this.nextState}`);
 
-    this.current++;
+    this.current = this.nextState;
     stateContent = stateContent.replace(SEQUENCE_NUMBER_REGEX, `sequenceNumber=${this.current}`);
     const stateBuffer = Buffer.from(stateContent, 'utf-8');
     const stateKey = join(this.projectId, STATE_FILE);
