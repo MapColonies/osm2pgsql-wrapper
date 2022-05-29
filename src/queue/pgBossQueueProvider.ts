@@ -19,39 +19,46 @@ export class PgBossQueueProvider implements QueueProvider {
     this.queueName = configStore.get<string>('queue.name');
   }
 
+  public get activeQueueName(): string {
+    return this.queueName;
+  }
+
   public async startQueue(): Promise<void> {
-    this.logger.info('starting pg-boss queue');
+    this.logger.info({ msg: 'starting pgboss queue', queueName: this.queueName });
 
     this.pgBoss.on('error', (err) => {
-      this.logger.error(err, 'pg-boss error');
+      this.logger.error({ msg: 'pgboss error', err, queueName: this.queueName });
     });
 
     try {
       await this.pgBoss.start();
     } catch (error) {
       const queueError = error as Error;
-      this.logger.error(queueError);
+      this.logger.error({ msg: 'failed to start queue', err: queueError, queueName: this.queueName });
       throw new QueueError(queueError.message);
     }
   }
 
   public async stopQueue(): Promise<void> {
-    this.logger.info('stopping pg-boss queue');
+    this.logger.info({ msg: 'stopping pgboss queue', queueName: this.queueName });
+
     await this.pgBoss.stop();
   }
 
   public async push(payload: object): Promise<void> {
-    this.logger.info(`pushing payload into ${this.queueName}`);
+    this.logger.info({ msg: 'pushing request into queue', queueName: this.queueName });
 
     const hash = createHash('md5');
     hash.update(JSON.stringify(payload));
     try {
       const response = await this.pgBoss.sendOnce(this.queueName, payload, {}, hash.digest('hex'));
+
       if (response === null) {
         throw new RequestAlreadyInQueueError(`request already in queue: ${this.queueName}`);
       }
     } catch (error) {
       const queueError = error as Error;
+      this.logger.error({ msg: 'failed to push request into queue', err: queueError, queueName: this.queueName });
       throw new QueueError(queueError.message);
     }
   }

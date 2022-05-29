@@ -19,7 +19,11 @@ export class CreateManager {
   ) {}
 
   public async create(projectId: string, luaScriptKey: string, dumpSource: string, dumpSourceType: DumpSourceType): Promise<void> {
+    this.logger.info({ msg: 'creating project', projectId, dumpSourceType, dumpSource, luaScriptKey });
+
     const scriptKey = join(projectId, luaScriptKey);
+
+    this.logger.info({ msg: 'getting script from s3 to file system', projectId, scriptKey, bucketName: this.s3Client.bucketName });
 
     const localScriptPath = await this.getScriptFromS3ToFs(scriptKey);
 
@@ -27,17 +31,20 @@ export class CreateManager {
 
     if (dumpSourceType !== DumpSourceType.LOCAL_FILE) {
       const remoteDumpUrl = dumpSourceType === DumpSourceType.DUMP_SERVER ? (await this.getLatestFromDumpServer(dumpSource)).url : dumpSource;
+
+      this.logger.info({ msg: 'getting dump from remote service', url: remoteDumpUrl, projectId });
+
       localDumpPath = await this.getDumpFromRemoteToFs(remoteDumpUrl);
     }
+
+    this.logger.info({ msg: 'attempting to osm2pg create', projectId, luaScriptKey });
 
     await this.osmCommandRunner.create([`--style=${localScriptPath}`, localDumpPath]);
   }
 
   private async getScriptFromS3ToFs(scriptKey: string): Promise<string> {
-    this.logger.info(`getting script from s3 to file system`);
-
     if (!(await this.s3Client.validateExistance('bucket'))) {
-      this.logger.error('the specified bucket does not exists');
+      this.logger.error({ msg: 'the specified bucket does not exist', bucketName: this.s3Client.bucketName });
       throw new BucketDoesNotExistError('the specified bucket does not exist');
     }
 
@@ -50,11 +57,9 @@ export class CreateManager {
   }
 
   private async getLatestFromDumpServer(dumpServerUrl: string): Promise<DumpMetadataResponse> {
-    this.logger.info(`getting the latest dump from dump-server`);
-
     const dumpServerResponse = await this.dumpClient.getDumpsMetadata(dumpServerUrl, { limit: 1, sort: 'desc' });
     if (dumpServerResponse.data.length === 0) {
-      this.logger.error(`received empty dumps response, url: ${dumpServerUrl}`);
+      this.logger.error({ msg: 'received empty dumps response from dump-server', dumpServerUrl });
       throw new DumpServerEmptyResponseError(`received empty dumps response from dump-server`);
     }
 
@@ -62,8 +67,6 @@ export class CreateManager {
   }
 
   private async getDumpFromRemoteToFs(url: string, name = DEFAULT_DUMP_NAME): Promise<string> {
-    this.logger.info(`getting dump from remote service`);
-
     const localDumpPath = join(DATA_DIR, name);
     const response = await this.dumpClient.getDump(url);
     await streamToFs(response.data, localDumpPath);

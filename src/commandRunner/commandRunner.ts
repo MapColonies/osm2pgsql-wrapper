@@ -29,8 +29,7 @@ export class CommandRunner {
   public createProcess(executable: string, command: string, commandArgs: string[] = []): ChildProcessWithoutNullStreams {
     const args = [command, ...commandArgs];
 
-    const prettyArgs = args.join(' ');
-    this.logger.debug(`running command: ${executable} ${prettyArgs}`);
+    this.logger.debug({ msg: 'spawning new process', executable, args });
 
     return spawn(executable, args);
   }
@@ -45,7 +44,7 @@ export class CommandRunner {
 
     readline.createInterface(stderrClonedForLogging).on('line', (line) => {
       if (line.length > 0) {
-        this.logger.info(line);
+        this.logger.info({ msg: line, executable, command });
       }
     });
 

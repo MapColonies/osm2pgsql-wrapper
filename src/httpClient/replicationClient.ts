@@ -11,7 +11,7 @@ export class ReplicationClient extends BaseClient {
   }
 
   public async getState(url: string): Promise<HttpResponse<string>> {
-    this.logger.info(`invoking GET to ${url}/${STATE_FILE}`);
+    this.logger.debug({ msg: 'invoking http GET request', url: `${url}/${STATE_FILE}` });
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
     return this.invokeHttp<string, undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, STATE_FILE, {
@@ -20,7 +20,7 @@ export class ReplicationClient extends BaseClient {
   }
 
   public async getDiff(base: string, diffUrl: string): Promise<HttpResponse<NodeJS.ReadStream>> {
-    this.logger.info(`invoking GET to ${base}/${diffUrl}`);
+    this.logger.debug({ msg: 'invoking http GET request', url: `${base}/${diffUrl}` });
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
     return this.invokeHttp<NodeJS.ReadStream, undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, diffUrl, {
