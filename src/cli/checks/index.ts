@@ -56,17 +56,17 @@ export const uploadTargetsCheck = (invalidHandler: InvalidHandler<unknown>): Che
 };
 
 // checks whether the dump source arg is a valid existing local file or valid web uri
-export const dumpSourceCheck = (): CheckFunc<CreateArguments> => {
+export const dumpSourceCheck = (invalidHandler: InvalidHandler<undefined>): CheckFunc<CreateArguments> => {
   const check: CheckFunc<CreateArguments> = (args) => {
     const { dumpSourceType, dumpSource } = args;
 
     const errorPrefix = `provided dump source of type ${dumpSourceType} is not valid`;
     if (dumpSourceType === DumpSourceType.LOCAL_FILE) {
       if (!existsSync(dumpSource)) {
-        throw new Error(`${errorPrefix}, ${dumpSource} does not exist locally`);
+        invalidHandler({ isValid: false, errors: `${errorPrefix}, ${dumpSource} does not exist locally` });
       }
     } else if (isWebUri(dumpSource) === undefined) {
-      throw new Error(`${errorPrefix}, ${dumpSource} is not a valid web uri`);
+      invalidHandler({ isValid: false, errors: `${errorPrefix}, ${dumpSource} is not a valid web uri` });
     }
 
     return true;

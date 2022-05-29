@@ -30,8 +30,6 @@ export class StateTracker {
   }
 
   public async prepareEnvironment(projectId: string, limit?: number): Promise<void> {
-    this.logger.info(`preparing environment, project id: ${projectId}`);
-
     this.projectId = projectId;
     if (limit !== undefined) {
       this.totalRequestedAppends = limit;
@@ -40,25 +38,25 @@ export class StateTracker {
 
     const dir = join(DATA_DIR, projectId);
 
-    this.logger.debug(`creating directory ${dir}`);
+    this.logger.debug({ msg: 'creating data directory', path: dir, projectId: this.projectId });
     await createDirectory(dir);
 
     if (!(await this.s3Client.validateExistance('bucket'))) {
-      this.logger.error('the specified bucket does not exists');
+      this.logger.error({ msg: 'configured bucket does not exist', projectId: this.projectId, bucketName: this.s3Client.bucketName });
       throw new BucketDoesNotExistError('the specified bucket does not exist');
     }
   }
 
   public isUpToDateOrReachedLimit(): boolean {
     if (this.remainingAppends === 0) {
-      this.logger.info(`append limitation of ${this.totalRequestedAppends as number} has reached`);
+      this.logger.info({ msg: 'append limitation has reached', limitation: this.totalRequestedAppends, projectId: this.projectId });
       return true;
     }
     return this.current === this.replicationEndState;
   }
 
   public async getStartSequenceNumber(): Promise<void> {
-    this.logger.info(`getting the start sequence number from bucket`);
+    this.logger.debug({ msg: 'getting the start state from bucket', projectId: this.projectId, bucketName: this.s3Client.bucketName });
 
     const stateKey = join(this.projectId, STATE_FILE);
     const stateStream = await this.s3Client.getObjectWrapper(stateKey);
@@ -66,20 +64,35 @@ export class StateTracker {
     this.start = this.fetchSequenceNumberSafely(stateContent);
     this.current = this.start;
 
-    this.logger.info(`start sequence number ${this.start}`);
+    this.logger.info({
+      msg: 'fetched start state from bucket',
+      projectId: this.projectId,
+      startState: this.start,
+      bucketName: this.s3Client.bucketName,
+    });
   }
 
   public async getReplicationSequenceNumber(replicationUrl: string): Promise<void> {
-    this.logger.info(`getting the end sequence number from remote replication source`);
+    this.logger.debug({ msg: 'getting end state from remote replication source', projectId: this.projectId, replicationUrl });
 
     const response = await this.replicationClient.getState(replicationUrl);
     this.replicationEndState = this.fetchSequenceNumberSafely(response.data);
 
-    this.logger.info(`replication sequence number ${this.replicationEndState}`);
+    this.logger.info({
+      msg: 'fetched remote replication source end state',
+      projectId: this.projectId,
+      replicationUrl,
+      endState: this.replicationEndState,
+    });
   }
 
   public async getScriptsFromS3ToFs(keys: string[]): Promise<void> {
-    this.logger.info(`getting scripts from bucket to file system`);
+    this.logger.info({
+      msg: 'getting scripts from bucket to file system',
+      projectId: this.projectId,
+      count: keys.length,
+      bucketName: this.s3Client.bucketName,
+    });
 
     const getScriptPromises = keys.map(async (scriptKey) => {
       const scriptStream = await this.s3Client.getObjectWrapper(scriptKey);
@@ -93,22 +106,33 @@ export class StateTracker {
   }
 
   public async updateRemoteState(): Promise<void> {
-    this.logger.info(`updating remote state from ${this.current} to ${this.nextState}`);
+    const fromState = this.current;
+
+    this.logger.info({
+      msg: 'attempting to update remote state on configured bucket',
+      projectId: this.projectId,
+      fromState,
+      toState: this.nextState,
+      bucketName: this.s3Client.bucketName,
+      acl: this.s3Client.acl,
+    });
 
     this.current = this.nextState;
     stateContent = stateContent.replace(SEQUENCE_NUMBER_REGEX, `sequenceNumber=${this.current}`);
     const stateBuffer = Buffer.from(stateContent, 'utf-8');
     const stateKey = join(this.projectId, STATE_FILE);
-    await this.s3Client.putObjectWrapper(stateKey, stateBuffer);
 
-    this.logger.info(`successfully updated the remote state source of ${this.projectId}, current state ${this.current}`);
+    await this.s3Client.putObjectWrapper(stateKey, stateBuffer);
   }
 
   public updateRemainingAppends(): void {
     if (this.totalRequestedAppends !== undefined) {
-      this.logger.info(
-        `append number ${this.totalRequestedAppends - (this.remainingAppends as number) + 1} out of ${this.totalRequestedAppends} has finished`
-      );
+      this.logger.info({
+        msg: 'append status',
+        appendNumber: this.totalRequestedAppends - (this.remainingAppends as number) + 1,
+        limitation: this.totalRequestedAppends,
+        projectId: this.projectId,
+      });
       (this.remainingAppends as number)--;
     }
   }
@@ -117,7 +141,7 @@ export class StateTracker {
     try {
       return fetchSequenceNumber(content);
     } catch (error) {
-      this.logger.error('failed to fetch sequence number out of the state file');
+      this.logger.error({ err: error, msg: 'failed to fetch sequence number out of the state file', projectId: this.projectId });
       throw new InvalidStateFileError('could not fetch sequence number out of the state file');
     }
   }

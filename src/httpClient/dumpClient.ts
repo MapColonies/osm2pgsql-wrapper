@@ -29,7 +29,7 @@ export class DumpClient extends BaseClient {
   }
 
   public async getDumpsMetadata(dumpServerUrl: string, params: DumpMetadataRequestParams): Promise<HttpResponse<DumpMetadataResponse[]>> {
-    this.logger.info(`invoking GET to ${dumpServerUrl}/${DUMP_METADATA_ENDPOINT}`);
+    this.logger.debug({ msg: 'invoking http GET request', url: `${dumpServerUrl}/${DUMP_METADATA_ENDPOINT}`, params });
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
     return this.invokeHttp<DumpMetadataResponse[], undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, DUMP_METADATA_ENDPOINT, {
@@ -40,7 +40,7 @@ export class DumpClient extends BaseClient {
   }
 
   public async getDump(url: string): Promise<HttpResponse<NodeJS.ReadStream>> {
-    this.logger.info(`invoking GET to ${url}`);
+    this.logger.debug({ msg: 'invoking http GET request', url });
 
     const funcRef = this.httpClient.get.bind(this.httpClient);
     return this.invokeHttp<NodeJS.ReadStream, undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, url, {
