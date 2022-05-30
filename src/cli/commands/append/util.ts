@@ -1,7 +1,7 @@
 import { BoundingBox } from '@map-colonies/tile-calc';
 import SphericalMercator from '@mapbox/sphericalmercator';
 import { Sort } from '../../../common/types';
-import { convertStreamToLinesArr, sortArrAlphabetically } from '../../../common/util';
+import { sortArrAlphabetically } from '../../../common/util';
 
 interface Tile {
   x: number;
@@ -65,9 +65,7 @@ const buildBboxArr = (tileMatrix: Tile[][], zoom: number): BoundingBox[] => {
   return bboxArray;
 };
 
-export const expireListStreamToBboxArray = async (expireListStream: NodeJS.ReadableStream): Promise<BoundingBox[]> => {
-  const expireListArr = await convertStreamToLinesArr(expireListStream);
-
+export const expireListToBboxArray = (expireListArr: string[]): BoundingBox[] => {
   const sortedExpireList = sortArrAlphabetically(expireListArr, 'desc');
 
   const zoom = fetchMaxZoom(sortedExpireList, 'desc');

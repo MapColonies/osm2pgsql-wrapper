@@ -5,6 +5,7 @@ import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
 import { ErrorWithExitCode } from '../../../common/errors';
 import { dumpSourceCheck } from '../../checks';
+import { ValidationResponse } from '../../../validation/validator';
 import { CreateManager } from './createManager';
 import { command, describe, CREATE_MANAGER_FACTORY, DumpSourceType } from './constants';
 
@@ -39,30 +40,40 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         demandOption: true,
       })
-      .check(dumpSourceCheck());
+      .check(dumpSourceCheck(throwIfInvalidResponse));
     return args as Argv<CreateArguments>;
   };
 
-  const handler = async (argv: Arguments<CreateArguments>): Promise<void> => {
-    const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType } = argv;
+  const handler = async (args: Arguments<CreateArguments>): Promise<void> => {
+    const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType } = args;
+
+    logger.debug({ msg: 'starting wrapper command execution', command, args });
 
     try {
       const manager = dependencyContainer.resolve<CreateManager>(CREATE_MANAGER_FACTORY);
 
       await manager.create(s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType);
 
-      logger.info(`finished successfully the creation of ${s3ProjectId}`);
+      logger.info({ msg: 'finished wrapper command execution successfully', command, project: s3ProjectId });
+
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
+
       if (error instanceof ErrorWithExitCode) {
         exitCode = error.exitCode;
-      } else {
-        logger.error((error as Error).message);
       }
 
       dependencyContainer.register(EXIT_CODE, { useValue: exitCode });
-      logger.warn(`an error occurred, exiting with code ${exitCode}`);
+      logger.error({ err: error as Error, msg: 'an error occurred while executing wrapper command', command, exitCode });
+    }
+  };
+
+  const throwIfInvalidResponse = <T>(validationResponse: ValidationResponse<T>): void => {
+    if (!validationResponse.isValid || validationResponse.content === undefined) {
+      const { errors } = validationResponse;
+      logger.error({ err: errors, msg: 'argument validation failure', command });
+      throw new Error(errors);
     }
   };
 

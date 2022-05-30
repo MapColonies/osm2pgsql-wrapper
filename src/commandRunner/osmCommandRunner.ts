@@ -41,10 +41,12 @@ export class OsmCommandRunner {
   }
 
   private async commandWrapper(executable: Executable, command: string, args: string[], error: new (message?: string) => Error): Promise<void> {
+    this.logger.info({ msg: 'executing osm command', executable, command, args });
+
     const { exitCode } = await this.commandRunner.run(executable, command, [...this.globalCommandArgs[executable], ...args]);
 
     if (exitCode !== 0) {
-      this.logger.error(`${executable} exit with code ${exitCode as number}`);
+      this.logger.error({ msg: 'failure occurred during the execute of osm command', executable, command, args, executableExitCode: exitCode });
       throw new error(`an error occurred while running ${executable} with ${command} command, exit code ${exitCode as number}`);
     }
   }

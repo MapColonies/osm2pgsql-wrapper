@@ -68,35 +68,39 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
   const handler = async (args: Arguments<AppendArguments>): Promise<void> => {
     const { config, s3ProjectId, replicationUrl, limit, uploadTargets } = args;
 
+    logger.debug({ msg: 'starting wrapper command execution', command, args });
+
     try {
       const manager = dependencyContainer.resolve<AppendManager>(APPEND_MANAGER_FACTORY);
 
       const configContent = await fsPromises.readFile(config, 'utf-8');
       const appendEntities = JSON.parse(configContent) as AppendEntity[];
 
+      logger.debug({ msg: 'append configuration', projectId: s3ProjectId, entitiesCount: appendEntities.length, limitation: limit });
+
       await manager.prepareManager(s3ProjectId, appendEntities, uploadTargets as ExpireTilesUploadTarget[], limit);
 
       await manager.append(replicationUrl);
 
-      logger.info(`finished successfully the append of ${s3ProjectId}`);
+      logger.info({ msg: 'finished executing wrapper command successfully', command, project: s3ProjectId });
+
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {
       let exitCode = ExitCodes.GENERAL_ERROR;
+
       if (error instanceof ErrorWithExitCode) {
         exitCode = error.exitCode;
-      } else {
-        logger.error((error as Error).message);
       }
 
       dependencyContainer.register(EXIT_CODE, { useValue: exitCode });
-      logger.warn(`an error occurred, exiting with exit code ${exitCode}`);
+      logger.error({ err: error as Error, msg: 'an error occurred while executing wrapper command', command, exitCode });
     }
   };
 
   const throwIfInvalidResponse = <T>(validationResponse: ValidationResponse<T>): void => {
     if (!validationResponse.isValid || validationResponse.content === undefined) {
       const { errors } = validationResponse;
-      logger.error(`validation failed with the following errors: ${errors as string}`);
+      logger.error({ err: errors, msg: 'argument validation failure', command });
       throw new Error(errors);
     }
   };
