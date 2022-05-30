@@ -30,14 +30,14 @@ export abstract class BaseClient {
       return { data: response.data, contentType: response.headers['content-type'], code: response.status };
     } catch (error) {
       const axiosError = error as AxiosError<E>;
-      this.logger.debug(axiosError.toJSON());
-      this.logger.error(`received the following error message: ${axiosError.message}`);
       if (axiosError.response !== undefined) {
-        this.logger.error(`upstream responded with: ${JSON.stringify(axiosError.response.data)}`);
+        this.logger.error({ err: axiosError, msg: 'received http upstream error response' });
         throw new HttpUpstreamResponseError(`upstream responded with an error, status code ${axiosError.response.status}`);
       } else if (axiosError.request !== undefined) {
+        this.logger.error({ err: axiosError, msg: 'http upstream unavailable, no response received' });
         throw new HttpUpstreamUnavailableError('no response received from the upstream');
       } else {
+        this.logger.error({ err: axiosError, msg: 'failed to dispatch http request' });
         throw new Error('request failed to dispatch');
       }
     }

@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        node: [14, 16]
+        node: [14.x, 16.x]
 
     steps:
       - name: Check out Git repository
