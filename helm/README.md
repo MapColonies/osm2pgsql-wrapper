@@ -66,7 +66,7 @@ pgboss is used for queueing the payload if requested on `append` command
 - `cli.append.limit.value` - the maximum amount of appends for a project as a whole in a single run
 - `cli.append.config.mountPath` - the inner container path for the config to be mounted to
 - `cli.append.config.fileName` - the inner container config file name to be used on append
-- `cli.append.config.path` - the config file local path to be used on append
+- `cli.append.config.path` - the config file local path to be mounted on append
 - `cli.append.uploadTargets` - list of the targets the expired tiles should be uploaded to, choices are `s3` (the genereated output expire.list from osm2pgsql) or `queue` (a payload consisting the bounding boxes of the expired tiles on the top zoom level). the list items are separated with comma without spaces e.g. "s3,queue"
 - `cli.append.queue.name` - the name of the queue the payload should be uploaded to
 - `cli.append.queue.minZoom` - the queue payload min zoom
