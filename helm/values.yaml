@@ -109,6 +109,7 @@ cli:
     config:
       mountPath: '/tmp/config'
       fileName: 'config.json'
+      path: '/config/append-config.json'
     uploadTargets: 's3,queue' # the upload targets separated with a comma with no space
     queue:
       name: queueName
