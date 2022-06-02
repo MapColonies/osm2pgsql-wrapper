@@ -31,7 +31,7 @@ export abstract class BaseClient {
     } catch (error) {
       const axiosError = error as AxiosError<E>;
       if (axiosError.response !== undefined) {
-        this.logger.error({ err: axiosError, msg: 'received http upstream error response' , response: axiosError.response.data });
+        this.logger.error({ err: axiosError, msg: 'received http upstream error response', response: axiosError.response.data });
         throw new HttpUpstreamResponseError(`upstream responded with an error, status code ${axiosError.response.status}`);
       } else if (axiosError.request !== undefined) {
         this.logger.error({ err: axiosError, msg: 'http upstream unavailable, no response received' });
