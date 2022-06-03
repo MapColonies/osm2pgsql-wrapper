@@ -66,9 +66,10 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
   };
 
   const handler = async (args: Arguments<AppendArguments>): Promise<void> => {
-    const { config, s3ProjectId, replicationUrl, limit, uploadTargets } = args;
+    const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, ...restOfArgs } = args;
+    logger.debug({ msg: 'starting wrapper command execution', command, args: restOfArgs });
 
-    logger.debug({ msg: 'starting wrapper command execution', command, args });
+    const { config, s3ProjectId, replicationUrl, limit, uploadTargets } = args;
 
     try {
       const manager = dependencyContainer.resolve<AppendManager>(APPEND_MANAGER_FACTORY);

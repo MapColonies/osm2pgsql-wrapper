@@ -45,9 +45,10 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
   };
 
   const handler = async (args: Arguments<CreateArguments>): Promise<void> => {
-    const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType } = args;
+    const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, ...restOfArgs } = args;
+    logger.debug({ msg: 'starting wrapper command execution', command, args: restOfArgs });
 
-    logger.debug({ msg: 'starting wrapper command execution', command, args });
+    const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType } = args;
 
     try {
       const manager = dependencyContainer.resolve<CreateManager>(CREATE_MANAGER_FACTORY);
