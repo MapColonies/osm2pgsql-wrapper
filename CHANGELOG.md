@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.0.1...v2.1.0) (2022-06-15)
+
+
+### Features
+
+* configurable append config ([#8](https://github.com/MapColonies/osm2pgsql-wrapper/issues/8)) ([639950a](https://github.com/MapColonies/osm2pgsql-wrapper/commit/639950a9b8a6856b1e0af6b1414d283193b0f9b3))
+
 ### [2.0.1](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v1.0.0...v2.0.1) (2022-05-16)
 
 
