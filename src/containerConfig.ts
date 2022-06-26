@@ -35,7 +35,6 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     const httpClientConfig = config.get<object>('httpClient');
     const axiosClient = axios.create(httpClientConfig);
 
-    tracing.start();
     const tracer = trace.getTracer(CLI_NAME);
     shutdownHandler.addFunction(tracing.stop.bind(tracing));
 

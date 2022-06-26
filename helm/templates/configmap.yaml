@@ -21,6 +21,7 @@ data:
   TELEMETRY_TRACING_ENABLED: {{ .Values.env.tracing.enabled | quote }}
   {{- if .Values.env.tracing.enabled }}
   TELEMETRY_TRACING_URL: {{ $tracingUrl }}
+  TELEMETRY_TRACING_RATIO: {{ .Values.env.tracing.ratio | quote }}
   {{- end }}
   HTTP_CLIENT_TIMEOUT: {{ .Values.env.httpClient.timeout | quote }}
   OSM2PGSQL_SLIM: {{ .Values.env.osm2pgsql.slim | quote}}
