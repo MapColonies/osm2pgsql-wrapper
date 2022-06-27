@@ -1,5 +1,5 @@
 import config from 'config';
-import { logMethod } from '@map-colonies/telemetry';
+import { getOtelMixin, logMethod } from '@map-colonies/telemetry';
 import { trace } from '@opentelemetry/api';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import jsLogger, { LoggerOptions } from '@map-colonies/js-logger';
@@ -27,15 +27,13 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
 
   try {
     const loggerConfig = config.get<LoggerOptions>('telemetry.logger');
-    // @ts-expect-error the signature is wrong
-    const logger = jsLogger({ ...loggerConfig, hooks: { logMethod } });
+    const logger = jsLogger({ ...loggerConfig, mixin: getOtelMixin() });
 
     const configStore = new ConfigStore();
 
     const httpClientConfig = config.get<object>('httpClient');
     const axiosClient = axios.create(httpClientConfig);
 
-    tracing.start();
     const tracer = trace.getTracer(CLI_NAME);
     shutdownHandler.addFunction(tracing.stop.bind(tracing));
 

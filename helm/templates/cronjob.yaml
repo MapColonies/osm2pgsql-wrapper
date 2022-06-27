@@ -14,14 +14,28 @@ metadata:
     environment: {{ include "osm2pgsql-wrapper.environment" . }}
     release: {{ $releaseName }}
     {{- include "osm2pgsql-wrapper.labels" . | nindent 4 }}
+{{- with .Values.cronAnnotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
 spec:
   schedule: {{ .Values.cron.schedule | quote }}
   successfulJobsHistoryLimit: {{ .Values.cron.successfulJobsHistoryLimit }}
   failedJobsHistoryLimit: {{ .Values.cron.failedJobsHistoryLimit }}
   concurrencyPolicy: {{ .Values.cron.concurrencyPolicy }}
   jobTemplate:
+{{- with .Values.jobAnnotations }}
+    metadata:
+      annotations:
+{{ toYaml . | indent 8 }}
+{{- end }}
     spec:
       template:
+{{- with .Values.podAnnotations }}
+        metadata:
+          annotations:
+{{ toYaml . | indent 12 }}
+{{- end }}
         spec:
           restartPolicy: {{ .Values.cron.restartPolicy }}
           containers:

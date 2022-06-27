@@ -14,10 +14,19 @@ metadata:
     environment: {{ include "osm2pgsql-wrapper.environment" . }}
     release: {{ $releaseName }}
     {{- include "osm2pgsql-wrapper.labels" . | nindent 4 }}
+{{- with .Values.jobAnnotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
 spec:
   ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
   backoffLimit: {{ .Values.job.backoffLimit }}
   template:
+{{- with .Values.podAnnotations }}
+    metadata:
+      annotations:
+{{ toYaml . | indent 8 }}
+{{- end }}
     spec:
       restartPolicy: {{ .Values.job.restartPolicy }}
       containers:
