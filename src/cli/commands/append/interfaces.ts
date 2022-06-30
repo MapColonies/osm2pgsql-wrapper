@@ -1,7 +1,7 @@
 import { BoundingBox } from '@map-colonies/tile-calc';
 import { GlobalArguments } from '../../cliBuilderFactory';
 
-type ResourceType = 'script' | 'geojson';
+type ResourceType = 'script' | 'geometry';
 
 export interface BaseAppendArguments extends GlobalArguments {
   config: string;

@@ -82,7 +82,7 @@ export class AppendManager {
     this.entities.forEach((entity) => {
       resources.push({ key: join(this.stateTracker.projectId, entity.script), type: 'script' });
       if (entity.geometryKey !== undefined) {
-        resources.push({ key: entity.geometryKey, type: 'geojson' });
+        resources.push({ key: entity.geometryKey, type: 'geometry' });
       }
     });
 
