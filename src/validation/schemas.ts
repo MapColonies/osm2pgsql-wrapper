@@ -7,6 +7,7 @@ const ZOOM_LEVEL_MAXIMUM = 20;
 export interface AppendEntity {
   id: string;
   script: string;
+  geometryKey?: string;
   zoomLevel?: {
     min: number;
     max?: number;
@@ -20,6 +21,7 @@ export const APPEND_CONFIG_SCHEMA: JSONSchemaType<AppendEntity[]> = {
     properties: {
       id: { type: 'string' },
       script: { type: 'string' },
+      geometryKey: { type: 'string', nullable: true },
       zoomLevel: {
         type: 'object',
         properties: {

@@ -31,6 +31,7 @@ export const ExitCodes = {
   OSMIUM_ERROR: 106,
   QUEUE_ERROR: 107,
   BUCKET_DOES_NOT_EXIST_ERROR: 108,
+  INVALID_GEOJSON_ERROR: 109,
 };
 
 export const NOT_FOUND_INDEX = -1;

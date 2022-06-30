@@ -43,6 +43,8 @@
     "@mapbox/sphericalmercator": "^1.2.0",
     "@opentelemetry/api": "1.1.0",
     "@opentelemetry/api-metrics": "0.29.0",
+    "@turf/boolean-valid": "^6.5.0",
+    "@turf/turf": "^6.5.0",
     "ajv": "^8.8.2",
     "ajv-keywords": "^5.1.0",
     "axios": "^0.24.0",

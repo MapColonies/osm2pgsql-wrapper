@@ -44,8 +44,6 @@ export const isStringEmptyOrUndefined = (input: string | undefined): boolean => 
   return false;
 };
 
-export const removeDuplicates = <T>(input: T[]): T[] => input.filter((value, index) => input.indexOf(value) === index);
-
 export const streamToFs = async (stream: NodeJS.ReadStream, path: string): Promise<void> => {
   const writeStream = fs.createWriteStream(path, { encoding: 'binary' });
   stream.pipe(writeStream);
@@ -88,13 +86,13 @@ export const fetchSequenceNumber = (content: string): number => {
   return parseInt(matchResult[0].split('=')[1]);
 };
 
-export const convertStreamToLinesArr = async (stream: NodeJS.ReadableStream): Promise<string[]> => {
-  const linesArray: string[] = [];
+export const streamToUniqueLines = async (stream: NodeJS.ReadableStream): Promise<string[]> => {
+  const lines = new Set<string>();
   await applyFuncLineByLine(stream, (line) => {
-    linesArray.push(line);
+    lines.add(line);
   });
 
-  return linesArray;
+  return Array.from(lines);
 };
 
 export const sortArrAlphabetically = (arr: string[], sort?: Sort): string[] => {

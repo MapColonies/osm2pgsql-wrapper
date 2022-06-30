@@ -3,19 +3,32 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { inject } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
+import { Feature, Geometry } from '@turf/turf';
+import geojsonValidator from '@turf/boolean-valid';
 import { IConfig } from '../../../common/interfaces';
 import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST } from '../../../common/constants';
-import { convertStreamToLinesArr, getDiffDirPathComponents, removeDuplicates, streamToFs, valuesToRange } from '../../../common/util';
+import {
+  streamToUniqueLines,
+  createDirectory,
+  getDiffDirPathComponents,
+  getFileDirectory,
+  streamToFs,
+  streamToString,
+  valuesToRange,
+} from '../../../common/util';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { AppendEntity } from '../../../validation/schemas';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';
 import { ExpireTilesUploadTarget } from '../../../common/types';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { QueueProvider } from '../../../queue/queueProvider';
-import { RequestAlreadyInQueueError } from '../../../common/errors';
-import { QueueSettings, TileRequestQueuePayload } from './interfaces';
+import { InvalidGeojsonError, RequestAlreadyInQueueError } from '../../../common/errors';
+import { QueueSettings, RemoteResource, TileRequestQueuePayload } from './interfaces';
 import { StateTracker } from './stateTracker';
-import { expireListToBboxArray } from './util';
+import { ExpireTilesParser } from './expireTilesParser';
+import { filterByGeometry, filterByZoom } from './expireTilesFilters';
+
+const geometries: Record<string, Geometry | Feature> = {};
 
 export class AppendManager {
   private entities: AppendEntity[] = [];
@@ -65,8 +78,15 @@ export class AppendManager {
       return;
     }
 
-    const scriptsKeys = removeDuplicates(this.entities.map((entity) => join(this.stateTracker.projectId, entity.script)));
-    await this.stateTracker.getScriptsFromS3ToFs(scriptsKeys);
+    const resources: RemoteResource[] = [];
+    this.entities.forEach((entity) => {
+      resources.push({ key: join(this.stateTracker.projectId, entity.script), type: 'script' });
+      if (entity.geometryKey !== undefined) {
+        resources.push({ key: entity.geometryKey, type: 'geojson' });
+      }
+    });
+
+    await this.getRemoteResources([...new Set(resources)]);
 
     while (!this.stateTracker.isUpToDateOrReachedLimit()) {
       await this.appendNextState(replicationUrl);
@@ -115,7 +135,7 @@ export class AppendManager {
           await this.uploadExpiredListToS3(localExpireTilesListPath, entity.id);
         }
         if (target === 'queue') {
-          await this.pushExpireTilesToQueue(localExpireTilesListPath);
+          await this.pushExpireTilesToQueue(localExpireTilesListPath, entity.geometryKey);
         }
       }
     });
@@ -162,7 +182,7 @@ export class AppendManager {
     await this.s3Client.putObjectWrapper(expireListKey, expireTilesListBuffer);
   }
 
-  private async pushExpireTilesToQueue(expireListPath: string): Promise<void> {
+  private async pushExpireTilesToQueue(expireListPath: string, geometryKey?: string): Promise<void> {
     this.logger.info({
       msg: 'pushing expired-tiles to queue',
       queueName: this.queueProvider?.activeQueueName,
@@ -172,9 +192,15 @@ export class AppendManager {
 
     const expireListStream = fs.createReadStream(expireListPath);
 
-    const expireListArr = await convertStreamToLinesArr(expireListStream);
+    const expireList = await streamToUniqueLines(expireListStream);
+    if (expireList.length === 0) {
+      return;
+    }
 
-    const bbox = expireListToBboxArray(expireListArr);
+    const expireListParser = new ExpireTilesParser(expireList);
+    const preFilters = [filterByZoom(expireListParser.maxZoom)];
+    const postFilters = geometryKey !== undefined ? [filterByGeometry(geometries[geometryKey])] : [];
+    const bbox = expireListParser.expireListToBboxArray(preFilters, postFilters);
 
     const payload: TileRequestQueuePayload = {
       bbox,
@@ -229,5 +255,36 @@ export class AppendManager {
     const simplifiedDiffPath = join(DATA_DIR, `${this.stateTracker.nextState}.simplified.${DIFF_FILE_EXTENTION}`);
     await this.osmCommandRunner.mergeChanges([`${diffPath}`, `--output=${simplifiedDiffPath}`]);
     return simplifiedDiffPath;
+  }
+
+  private async getRemoteResources(resouces: RemoteResource[]): Promise<void> {
+    this.logger.info({
+      msg: 'getting remote resources from bucket',
+      projectId: this.stateTracker.projectId,
+      count: resouces.length,
+      bucketName: this.s3Client.bucketName,
+    });
+
+    const getResourcePromises = resouces.map(async (resource) => {
+      const stream = await this.s3Client.getObjectWrapper(resource.key);
+      const content = await streamToString(stream);
+
+      if (resource.type === 'script') {
+        const localScriptPath = join(DATA_DIR, resource.key);
+        await createDirectory(getFileDirectory(localScriptPath));
+        await fsPromises.writeFile(localScriptPath, content);
+        return;
+      }
+
+      const geojson = JSON.parse(content) as Feature | Geometry;
+      const isValid = geojsonValidator(geojson);
+      if (!isValid) {
+        throw new InvalidGeojsonError(`geojson with key ${resource.key} is invalid`);
+      }
+
+      geometries[resource.key] = geojson;
+    });
+
+    await Promise.all(getResourcePromises);
   }
 }

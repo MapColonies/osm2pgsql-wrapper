@@ -77,3 +77,10 @@ export class BucketDoesNotExistError extends ErrorWithExitCode {
     Object.setPrototypeOf(this, BucketDoesNotExistError.prototype);
   }
 }
+
+export class InvalidGeojsonError extends ErrorWithExitCode {
+  public constructor(message?: string) {
+    super(message, ExitCodes.INVALID_GEOJSON_ERROR);
+    Object.setPrototypeOf(this, InvalidGeojsonError.prototype);
+  }
+}
