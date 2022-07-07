@@ -2,7 +2,7 @@ import { BoundingBox } from '@map-colonies/tile-calc';
 import SphericalMercator from '@mapbox/sphericalmercator';
 import { Sort } from '../../../common/types';
 import { sortArrAlphabetically } from '../../../common/util';
-import { ExpireTilesPostFilterFunc, ExpireTilesPreFilterFunc } from './expireTilesFilters';
+import { ExpireTilePostFilterFunc, ExpireTilePreFilterFunc } from './expireTilesFilters';
 
 interface Tile {
   x: number;
@@ -47,23 +47,19 @@ export class ExpireTilesParser {
     this.maxZoom = this.getMaxZoom();
   }
 
-  public expireListToBboxArray(preFilters: ExpireTilesPreFilterFunc[] = [], postFilters: ExpireTilesPostFilterFunc[] = []): BoundingBox[] {
+  public expireListToBboxArray(preFilters: ExpireTilePreFilterFunc[] = [], postFilters: ExpireTilePostFilterFunc[] = []): BoundingBox[] {
     // sort for performance
     this.expireList = sortArrAlphabetically(this.expireList, this.sort);
 
     // apply pre filters on the list
-    for (const filter of preFilters) {
-      this.expireList = filter(this.expireList);
-    }
+    this.expireList = this.expireList.filter((line) => preFilters.every((filter) => filter(line)));
 
     // build tile ranges then the bbox array
     const tileRanges = buildTileRanges(this.expireList);
     let bboxArray = this.buildBboxArray(tileRanges, this.maxZoom);
 
     // apply post filters on the bbox array
-    for (const filter of postFilters) {
-      bboxArray = filter(bboxArray);
-    }
+    bboxArray = bboxArray.filter((bbox) => postFilters.every((filter) => filter(bbox)));
 
     return bboxArray;
   }

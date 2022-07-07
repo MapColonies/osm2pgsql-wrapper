@@ -1,8 +1,6 @@
 import { BoundingBox } from '@map-colonies/tile-calc';
 import { GlobalArguments } from '../../cliBuilderFactory';
 
-type ResourceType = 'script' | 'geometry';
-
 export interface BaseAppendArguments extends GlobalArguments {
   config: string;
   replicationUrl: string;
@@ -24,9 +22,4 @@ export interface TileRequestQueuePayload {
   minZoom: number;
   maxZoom: number;
   source: 'api' | 'expiredTiles';
-}
-
-export interface RemoteResource {
-  key: string;
-  type: ResourceType;
 }

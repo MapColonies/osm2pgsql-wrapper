@@ -78,9 +78,16 @@ export class BucketDoesNotExistError extends ErrorWithExitCode {
   }
 }
 
-export class InvalidGeojsonError extends ErrorWithExitCode {
+export class InvalidGeometryError extends ErrorWithExitCode {
   public constructor(message?: string) {
-    super(message, ExitCodes.INVALID_GEOJSON_ERROR);
-    Object.setPrototypeOf(this, InvalidGeojsonError.prototype);
+    super(message, ExitCodes.INVALID_GEOMETRY_ERROR);
+    Object.setPrototypeOf(this, InvalidGeometryError.prototype);
+  }
+}
+
+export class RemoteResourceNotFound extends ErrorWithExitCode {
+  public constructor(message?: string) {
+    super(message, ExitCodes.REMOTE_RESOURCE_NOT_FOUND_ERROR);
+    Object.setPrototypeOf(this, RemoteResourceNotFound.prototype);
   }
 }

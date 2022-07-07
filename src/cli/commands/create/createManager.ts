@@ -1,21 +1,20 @@
 import { join } from 'path';
-import fsPromises from 'fs/promises';
 import { inject } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { DATA_DIR, DEFAULT_DUMP_NAME, SERVICES } from '../../../common/constants';
-import { createDirectory, getFileDirectory, streamToFs } from '../../../common/util';
+import { streamToFs } from '../../../common/util';
 import { DumpClient, DumpMetadataResponse } from '../../../httpClient/dumpClient';
-import { S3ClientWrapper } from '../../../s3Client/s3Client';
-import { BucketDoesNotExistError, DumpServerEmptyResponseError } from '../../../common/errors';
+import { DumpServerEmptyResponseError } from '../../../common/errors';
+import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { DumpSourceType } from './constants';
 
 export class CreateManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    private readonly s3Client: S3ClientWrapper,
     private readonly dumpClient: DumpClient,
-    private readonly osmCommandRunner: OsmCommandRunner
+    private readonly osmCommandRunner: OsmCommandRunner,
+    private readonly remoteResourceManager: RemoteResourceManager
   ) {}
 
   public async create(projectId: string, luaScriptKey: string, dumpSource: string, dumpSourceType: DumpSourceType): Promise<void> {
@@ -23,9 +22,11 @@ export class CreateManager {
 
     const scriptKey = join(projectId, luaScriptKey);
 
-    this.logger.info({ msg: 'getting script from s3 to file system', projectId, scriptKey, bucketName: this.s3Client.bucketName });
+    this.logger.info({ msg: 'getting script from remote to file system', projectId, scriptKey });
 
-    const localScriptPath = await this.getScriptFromS3ToFs(scriptKey);
+    await this.remoteResourceManager.load([{ id: scriptKey, type: 'script' }]);
+
+    const localScriptPath = this.remoteResourceManager.getResource<string>(scriptKey);
 
     let localDumpPath = dumpSource;
 
@@ -40,20 +41,6 @@ export class CreateManager {
     this.logger.info({ msg: 'attempting to osm2pg create', projectId, luaScriptKey });
 
     await this.osmCommandRunner.create([`--style=${localScriptPath}`, localDumpPath]);
-  }
-
-  private async getScriptFromS3ToFs(scriptKey: string): Promise<string> {
-    if (!(await this.s3Client.validateExistance('bucket'))) {
-      this.logger.error({ msg: 'the specified bucket does not exist', bucketName: this.s3Client.bucketName });
-      throw new BucketDoesNotExistError('the specified bucket does not exist');
-    }
-
-    const scriptStream = await this.s3Client.getObjectWrapper(scriptKey);
-    const localScriptPath = join(DATA_DIR, scriptKey);
-    await createDirectory(getFileDirectory(localScriptPath));
-    await fsPromises.writeFile(localScriptPath, scriptStream);
-
-    return localScriptPath;
   }
 
   private async getLatestFromDumpServer(dumpServerUrl: string): Promise<DumpMetadataResponse> {

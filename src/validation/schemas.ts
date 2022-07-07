@@ -64,3 +64,10 @@ export const LIMIT_SCHEMA: JSONSchemaType<Limit> = {
     limit: { type: 'integer', minimum: 1, nullable: true },
   },
 };
+
+export const BBOX_SCHEMA: JSONSchemaType<number[]> = {
+  type: 'array',
+  items: { type: 'number', minimum: -180, maximum: 180 },
+  minItems: 4,
+  maxItems: 4,
+};
