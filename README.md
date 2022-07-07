@@ -108,7 +108,7 @@ Postgres authentication should be defined by the following env varaibles: `PGHOS
 | 106              | osmium error                  | failure occoured while running an osmium.                                       |
 | 107              | queue error                   | failure occoured while interacting with the queue.                              |
 | 108              | bucket does not exist error   | the requested bucket does not exist.                                            |
-| 109              | invalid geojson error         | given geojson is invalid.                                                       |
+| 109              | invalid geometry error        | given filter geometry is invalid.                                               |
 | 110              | remote resource not found     | resource was not found on remote                                                |
 
 ## Building and Running
