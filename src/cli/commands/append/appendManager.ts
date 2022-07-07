@@ -114,129 +114,6 @@ export class AppendManager {
     await Promise.all(appendPromises);
   }
 
-  private async uploadExpired(): Promise<void> {
-    this.logger.info({ msg: 'uploading expired-tiles to upload targets', targetsCount: this.uploadTargets.length, targets: this.uploadTargets });
-
-    const uploadPromises = this.entities.map(async (entity) => {
-      const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState}.${EXPIRE_LIST}`;
-      const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
-
-      for await (const target of this.uploadTargets) {
-        if (target === 's3') {
-          await this.uploadExpiredListToS3(localExpireTilesListPath, entity.id);
-        }
-        if (target === 'queue') {
-          const expireListStream = fs.createReadStream(localExpireTilesListPath);
-          const expireList = await streamToUniqueLines(expireListStream);
-          if (expireList.length === 0) {
-            this.logger.info({ msg: 'no expire tiles to push to queue', reason: 'generated expire list is empty' });
-            continue;
-          }
-          const bbox = this.filterExpireTiles(expireList, entity.geometryKey);
-          if (bbox.length === 0) {
-            this.logger.info({
-              msg: 'no expire tiles to push to queue',
-              reason: 'all tiles were filtered',
-            });
-            continue;
-          }
-          await this.pushExpireTilesToQueue(bbox);
-        }
-      }
-    });
-
-    await Promise.all(uploadPromises);
-  }
-
-  private async appendEntity(entity: AppendEntity, diffPath: string): Promise<void> {
-    const appendArgs = [];
-
-    const scriptId = join(this.stateTracker.projectId, entity.script);
-    const localScriptPath = this.remoteResourceManager.getResource<string>(scriptId);
-    appendArgs.push(`--style=${localScriptPath}`);
-
-    let expireTilesZoom = 'default';
-    if (entity.zoomLevel) {
-      expireTilesZoom = valuesToRange(entity.zoomLevel.min, entity.zoomLevel.max);
-      appendArgs.push(`--expire-tiles=${expireTilesZoom}`);
-    }
-
-    if (this.shouldGenerateExpireOutput) {
-      const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState}.${EXPIRE_LIST}`;
-      const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
-      appendArgs.push(`--expire-output=${localExpireTilesListPath}`);
-    }
-
-    this.logger.info({ msg: 'attempting to osm2pg append', entityId: entity.id, expireTilesZoom, projectId: this.stateTracker.projectId });
-
-    await this.osmCommandRunner.append([...appendArgs, diffPath]);
-  }
-
-  private async uploadExpiredListToS3(expireListPath: string, entityId: string): Promise<void> {
-    this.logger.info({
-      msg: 'uploading expired-tiles to s3',
-      state: this.stateTracker.nextState,
-      entityId,
-      projectId: this.stateTracker.projectId,
-      bucketName: this.s3Client.bucketName,
-      acl: this.s3Client.acl,
-    });
-
-    const expireTilesListBuffer = await fsPromises.readFile(expireListPath);
-    const expireListKey = join(this.stateTracker.projectId, entityId, this.stateTracker.nextState.toString(), EXPIRE_LIST);
-
-    await this.s3Client.putObjectWrapper(expireListKey, expireTilesListBuffer);
-  }
-
-  private filterExpireTiles(expireList: string[], geometryId?: string): BoundingBox[] {
-    const expireListParser = new ExpireTilesParser(expireList);
-    const preFilters = [getFilterByZoomFunc(expireListParser.maxZoom)];
-
-    const postFilters: ExpireTilePostFilterFunc[] = [];
-    if (geometryId !== undefined) {
-      const geometryFilter = this.remoteResourceManager.getResource<ExpireTilePostFilterFunc>(geometryId);
-      postFilters.push(geometryFilter);
-    }
-
-    const bbox = expireListParser.expireListToBboxArray(preFilters, postFilters);
-
-    this.logger.info({
-      msg: 'filtered expired tiles',
-      preFiltersCount: preFilters.length,
-      postFiltersCount: postFilters.length,
-      geometryId,
-      preTilesCount: expireList.length,
-      postTilesCount: bbox.length,
-    });
-
-    return bbox;
-  }
-
-  private async pushExpireTilesToQueue(bbox: BoundingBox[]): Promise<void> {
-    const payload: TileRequestQueuePayload = {
-      bbox,
-      source: 'expiredTiles',
-      minZoom: (this.queueSettings as QueueSettings).minZoom,
-      maxZoom: (this.queueSettings as QueueSettings).maxZoom,
-    };
-
-    this.logger.debug({
-      msg: 'pushing the following expired-tiles payload to queue',
-      queueName: this.queueProvider?.activeQueueName,
-      payload,
-      state: this.stateTracker.nextState,
-      projectId: this.stateTracker.projectId,
-    });
-
-    try {
-      await (this.queueProvider as QueueProvider).push(payload);
-    } catch (error) {
-      if (error instanceof RequestAlreadyInQueueError) {
-        this.logger.warn({ err: error, state: this.stateTracker.nextState });
-      }
-    }
-  }
-
   private async getDiffToFs(replicationUrl: string): Promise<string> {
     const [top, bottom, sequenceNumber] = getDiffDirPathComponents(this.stateTracker.nextState);
     const diffKey = join(top, bottom, `${sequenceNumber}.${DIFF_FILE_EXTENTION}`);
@@ -266,5 +143,136 @@ export class AppendManager {
     const simplifiedDiffPath = join(DATA_DIR, `${this.stateTracker.nextState}.simplified.${DIFF_FILE_EXTENTION}`);
     await this.osmCommandRunner.mergeChanges([`${diffPath}`, `--output=${simplifiedDiffPath}`]);
     return simplifiedDiffPath;
+  }
+
+  private async appendEntity(entity: AppendEntity, diffPath: string): Promise<void> {
+    const appendArgs = [];
+
+    const scriptId = join(this.stateTracker.projectId, entity.script);
+    const localScriptPath = this.remoteResourceManager.getResource<string>(scriptId);
+    appendArgs.push(`--style=${localScriptPath}`);
+
+    let expireTilesZoom = 'default';
+    if (entity.zoomLevel) {
+      expireTilesZoom = valuesToRange(entity.zoomLevel.min, entity.zoomLevel.max);
+      appendArgs.push(`--expire-tiles=${expireTilesZoom}`);
+    }
+
+    if (this.shouldGenerateExpireOutput) {
+      const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState}.${EXPIRE_LIST}`;
+      const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
+      appendArgs.push(`--expire-output=${localExpireTilesListPath}`);
+    }
+
+    this.logger.info({ msg: 'attempting to osm2pg append', entityId: entity.id, expireTilesZoom, projectId: this.stateTracker.projectId });
+
+    await this.osmCommandRunner.append([...appendArgs, diffPath]);
+  }
+
+  private async uploadExpired(): Promise<void> {
+    this.logger.info({ msg: 'uploading expired-tiles to upload targets', targetsCount: this.uploadTargets.length, targets: this.uploadTargets });
+
+    const uploadPromises = this.entities.map(async (entity) => {
+      const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState}.${EXPIRE_LIST}`;
+      const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
+
+      for await (const target of this.uploadTargets) {
+        if (target === 's3') {
+          await this.uploadExpiredListToS3(localExpireTilesListPath, entity.id);
+        }
+        if (target === 'queue') {
+          await this.pushExpiredTilesToQueue(localExpireTilesListPath, entity.geometryKey);
+        }
+      }
+    });
+
+    await Promise.all(uploadPromises);
+  }
+
+  private async uploadExpiredListToS3(expireListPath: string, entityId: string): Promise<void> {
+    this.logger.info({
+      msg: 'uploading expired-tiles to s3',
+      state: this.stateTracker.nextState,
+      entityId,
+      projectId: this.stateTracker.projectId,
+      bucketName: this.s3Client.bucketName,
+      acl: this.s3Client.acl,
+    });
+
+    const expireTilesListBuffer = await fsPromises.readFile(expireListPath);
+    const expireListKey = join(this.stateTracker.projectId, entityId, this.stateTracker.nextState.toString(), EXPIRE_LIST);
+
+    await this.s3Client.putObjectWrapper(expireListKey, expireTilesListBuffer);
+  }
+
+  private async pushExpiredTilesToQueue(expireListPath: string, geometryKey?: string): Promise<void> {
+    const expireListStream = fs.createReadStream(expireListPath);
+    const expireList = await streamToUniqueLines(expireListStream);
+
+    if (expireList.length === 0) {
+      this.logger.info({ msg: 'no expire tiles to push to queue', reason: 'generated expire list is empty' });
+      return;
+    }
+
+    const expiredTilesBbox = this.buildFilteredExpiredTilesBbox(expireList, geometryKey);
+
+    if (expiredTilesBbox.length === 0) {
+      this.logger.info({
+        msg: 'no expire tiles to push to queue',
+        reason: 'all tiles were filtered',
+      });
+      return;
+    }
+
+    const payload: TileRequestQueuePayload = {
+      bbox: expiredTilesBbox,
+      source: 'expiredTiles',
+      minZoom: (this.queueSettings as QueueSettings).minZoom,
+      maxZoom: (this.queueSettings as QueueSettings).maxZoom,
+    };
+
+    await this.pushPayloadToQueue(payload);
+  }
+
+  private buildFilteredExpiredTilesBbox(expireList: string[], geometryId?: string): BoundingBox[] {
+    const expireListParser = new ExpireTilesParser(expireList);
+    const preFilters = [getFilterByZoomFunc(expireListParser.maxZoom)];
+
+    const postFilters: ExpireTilePostFilterFunc[] = [];
+    if (geometryId !== undefined) {
+      const geometryFilter = this.remoteResourceManager.getResource<ExpireTilePostFilterFunc>(geometryId);
+      postFilters.push(geometryFilter);
+    }
+
+    const bbox = expireListParser.parseExpireListToFilteredBbox(preFilters, postFilters);
+
+    this.logger.info({
+      msg: 'filtered expired tiles',
+      preFiltersCount: preFilters.length,
+      postFiltersCount: postFilters.length,
+      geometryId,
+      preTilesCount: expireList.length,
+      postTilesCount: bbox.length,
+    });
+
+    return bbox;
+  }
+
+  private async pushPayloadToQueue(payload: TileRequestQueuePayload): Promise<void> {
+    this.logger.debug({
+      msg: 'pushing the following expired-tiles payload to queue',
+      queueName: this.queueProvider?.activeQueueName,
+      payload,
+      state: this.stateTracker.nextState,
+      projectId: this.stateTracker.projectId,
+    });
+
+    try {
+      await (this.queueProvider as QueueProvider).push(payload);
+    } catch (error) {
+      if (error instanceof RequestAlreadyInQueueError) {
+        this.logger.warn({ err: error, state: this.stateTracker.nextState });
+      }
+    }
   }
 }

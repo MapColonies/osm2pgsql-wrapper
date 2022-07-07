@@ -47,7 +47,7 @@ export class ExpireTilesParser {
     this.maxZoom = this.getMaxZoom();
   }
 
-  public expireListToBboxArray(preFilters: ExpireTilePreFilterFunc[] = [], postFilters: ExpireTilePostFilterFunc[] = []): BoundingBox[] {
+  public parseExpireListToFilteredBbox(preFilters: ExpireTilePreFilterFunc[] = [], postFilters: ExpireTilePostFilterFunc[] = []): BoundingBox[] {
     // sort for performance
     this.expireList = sortArrAlphabetically(this.expireList, this.sort);
 
