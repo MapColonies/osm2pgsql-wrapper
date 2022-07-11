@@ -18,7 +18,7 @@ import { RemoteResourceManager } from '../../../remoteResource/remoteResourceMan
 import { QueueSettings, TileRequestQueuePayload } from './interfaces';
 import { StateTracker } from './stateTracker';
 import { ExpireTilesParser } from './expireTilesParser';
-import { ExpireTilePostFilterFunc, getFilterByZoomFunc } from './expireTilesFilters';
+import { ExpireTilePostFilterFunc } from './expireTilesFilters';
 
 export class AppendManager {
   private entities: AppendEntity[] = [];
@@ -235,21 +235,20 @@ export class AppendManager {
   }
 
   private buildFilteredExpiredTilesBbox(expireList: string[], geometryId?: string): BoundingBox[] {
-    const expireListParser = new ExpireTilesParser(expireList);
-    const preFilters = [getFilterByZoomFunc(expireListParser.maxZoom)];
-
     const postFilters: ExpireTilePostFilterFunc[] = [];
     if (geometryId !== undefined) {
       const geometryFilter = this.remoteResourceManager.getResource<ExpireTilePostFilterFunc>(geometryId);
       postFilters.push(geometryFilter);
     }
 
-    const bbox = expireListParser.parseExpireListToFilteredBbox(preFilters, postFilters);
+    const expireListParser = new ExpireTilesParser({ filterMaxZoom: true, postFilters });
+
+    const bbox = expireListParser.parseExpireListToFilteredBbox(expireList);
 
     this.logger.info({
       msg: 'filtered expired tiles',
-      preFiltersCount: preFilters.length,
-      postFiltersCount: postFilters.length,
+      preFiltersCount: expireListParser.getPreFilters.length,
+      postFiltersCount: expireListParser.getPostFilters.length,
       geometryId,
       preTilesCount: expireList.length,
       postTilesCount: bbox.length,

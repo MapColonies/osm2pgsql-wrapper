@@ -10,8 +10,8 @@ export type ExpireTilePreFilterFunc = (expireList: string) => boolean;
 export type ExpireTilePostFilterFunc = (bbox: BoundingBox) => boolean;
 
 export const getFilterByZoomFunc = (zoom: number): ExpireTilePreFilterFunc => {
-  const filter: ExpireTilePreFilterFunc = (expireList) => {
-    const elements = expireList.split('/');
+  const filter: ExpireTilePreFilterFunc = (expireTile) => {
+    const elements = expireTile.split('/');
     const zoomValue = parseInt(elements[0]);
     return zoomValue === zoom;
   };
