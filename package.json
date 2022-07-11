@@ -4,6 +4,7 @@
   "description": "This is template for map colonies typescript service",
   "main": "./src/index.ts",
   "scripts": {
+    "test:unit": "jest --config=./tests/configurations/unit/jest.config.js",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "prelint:fix": "npm run format:fix",
@@ -11,6 +12,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "release": "standard-version",
+    "test": "npm run test:unit",
     "prebuild": "npm run clean",
     "build": "tsc --project tsconfig.build.json && npm run assets:copy",
     "start": "npm run build && cd dist && node ./index.js",
@@ -68,6 +70,7 @@
     "@types/concat-stream": "^1.6.1",
     "@types/config": "0.0.39",
     "@types/express": "^4.17.13",
+    "@types/jest": "28.1.4",
     "@types/lodash": "^4.14.179",
     "@types/mapbox__sphericalmercator": "^1.2.0",
     "@types/valid-url": "^1.0.3",
@@ -77,10 +80,14 @@
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^8.15.0",
     "husky": "^7.0.2",
+    "jest": "28.1.2",
+    "jest-create-mock-instance": "^2.0.0",
+    "jest-html-reporters": "^3.0.10",
     "prettier": "^2.4.1",
     "pretty-quick": "^3.1.1",
     "rimraf": "^3.0.2",
     "standard-version": "^9.3.2",
+    "ts-jest": "^28.0.5",
     "typescript": "^4.2.4"
   }
 }
