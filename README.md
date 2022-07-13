@@ -65,7 +65,8 @@ The output of the append command of `osm2pgsql` is an expire list of tiles in re
 
 The expired tiles list can be uploaded\pushed to a source of your choice, `s3`, `queue` (using `pgboss`) or both.
 - For the `s3` option the expired tiles a.k.a `expire.list` of each sub part will be uploaded to the bucket as well under `/projectId/subId/sequenceNumber/expire.list`.
-- For the `queue` option the expired tiles will be parsed into bounding boxes in WGS84 and pushed into the `pgboss` job queue for further processing
+- For the `queue` option the expired tiles will be parsed into bounding boxes in WGS84 and pushed into the `pgboss` job queue for further processing.
+tiles can be filtered by geometry with given `geometryKey` as geojson or bbox key fetched from remote resource, only the filtered tiles will be pushed to the queue.
 
 Before appending a `state.txt` needs to be placed on the bucket under the projectId, the state's `sequenceNumber` will be updated for each append. On the first append the `sequenceNumber` of the creation dump needs to be placed in the `state.txt`.
 
@@ -107,6 +108,8 @@ Postgres authentication should be defined by the following env varaibles: `PGHOS
 | 106              | osmium error                  | failure occoured while running an osmium.                                       |
 | 107              | queue error                   | failure occoured while interacting with the queue.                              |
 | 108              | bucket does not exist error   | the requested bucket does not exist.                                            |
+| 109              | invalid geometry error        | given filter geometry is invalid.                                               |
+| 110              | remote resource not found     | resource was not found on remote                                                |
 
 ## Building and Running
 

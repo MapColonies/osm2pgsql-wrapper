@@ -7,6 +7,7 @@ const ZOOM_LEVEL_MAXIMUM = 20;
 export interface AppendEntity {
   id: string;
   script: string;
+  geometryKey?: string;
   zoomLevel?: {
     min: number;
     max?: number;
@@ -20,6 +21,7 @@ export const APPEND_CONFIG_SCHEMA: JSONSchemaType<AppendEntity[]> = {
     properties: {
       id: { type: 'string' },
       script: { type: 'string' },
+      geometryKey: { type: 'string', nullable: true },
       zoomLevel: {
         type: 'object',
         properties: {
@@ -61,4 +63,11 @@ export const LIMIT_SCHEMA: JSONSchemaType<Limit> = {
   properties: {
     limit: { type: 'integer', minimum: 1, nullable: true },
   },
+};
+
+export const BBOX_SCHEMA: JSONSchemaType<number[]> = {
+  type: 'array',
+  items: { type: 'number', minimum: -180, maximum: 180 },
+  minItems: 4,
+  maxItems: 4,
 };

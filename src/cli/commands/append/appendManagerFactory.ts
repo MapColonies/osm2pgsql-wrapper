@@ -3,6 +3,8 @@ import { FactoryFunction } from 'tsyringe';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { SERVICES } from '../../../common/constants';
 import { IConfig } from '../../../common/interfaces';
+import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
+import { S3RemoteResourceProvider } from '../../../remoteResource/s3ResourceProvider';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { QUEUE_PROVIDER_SYMBOL } from '../../../queue/constants';
 import { QueueProvider } from '../../../queue/queueProvider';
@@ -18,8 +20,19 @@ export const appendManagerFactory: FactoryFunction<AppendManager> = (dependencyC
   const replicationClient = dependencyContainer.resolve(ReplicationClient);
   const osmCommandRunner = dependencyContainer.resolve(OsmCommandRunner);
   const configStore = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG_STORE);
+  const remoteResourceManager = new RemoteResourceManager(logger, new S3RemoteResourceProvider(s3Client));
   const queueProv = dependencyContainer.isRegistered(QUEUE_PROVIDER_SYMBOL)
     ? dependencyContainer.resolve<QueueProvider>(QUEUE_PROVIDER_SYMBOL)
     : undefined;
-  return new AppendManager(logger, config, stateTracker, s3Client, replicationClient, osmCommandRunner, configStore, queueProv);
+  return new AppendManager(
+    logger,
+    config,
+    stateTracker,
+    s3Client,
+    replicationClient,
+    osmCommandRunner,
+    configStore,
+    remoteResourceManager,
+    queueProv
+  );
 };
