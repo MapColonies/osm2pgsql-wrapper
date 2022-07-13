@@ -1,4 +1,4 @@
-import { LogLevel, OutputType } from './types';
+import { LogLevel, OutputType, ResourceType } from './types';
 
 export interface IConfig {
   get: <T>(setting: string) => T;
@@ -20,4 +20,9 @@ export interface Osm2pgsqlConfig {
 export interface OsmiumConfig {
   verbose: boolean;
   progress: boolean;
+}
+
+export interface RemoteResource {
+  id: string;
+  type: ResourceType;
 }

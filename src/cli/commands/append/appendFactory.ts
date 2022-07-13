@@ -66,7 +66,7 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
   };
 
   const handler = async (args: Arguments<AppendArguments>): Promise<void> => {
-    const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, ...restOfArgs } = args;
+    const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, pgbossUsername, pgBossPassword, ...restOfArgs } = args;
     logger.debug({ msg: 'starting wrapper command execution', command, args: restOfArgs });
 
     const { config, s3ProjectId, replicationUrl, limit, uploadTargets } = args;

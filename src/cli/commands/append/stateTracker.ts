@@ -1,10 +1,9 @@
 import { join } from 'path';
-import fsPromises from 'fs/promises';
 import { inject, singleton } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { DATA_DIR, DEFAULT_SEQUENCE_NUMBER, SEQUENCE_NUMBER_REGEX, SERVICES, STATE_FILE } from '../../../common/constants';
 import { BucketDoesNotExistError, InvalidStateFileError } from '../../../common/errors';
-import { createDirectory, fetchSequenceNumber, getFileDirectory, streamToString } from '../../../common/util';
+import { createDirectory, fetchSequenceNumber, streamToString } from '../../../common/util';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';
 
@@ -84,25 +83,6 @@ export class StateTracker {
       replicationUrl,
       endState: this.replicationEndState,
     });
-  }
-
-  public async getScriptsFromS3ToFs(keys: string[]): Promise<void> {
-    this.logger.info({
-      msg: 'getting scripts from bucket to file system',
-      projectId: this.projectId,
-      count: keys.length,
-      bucketName: this.s3Client.bucketName,
-    });
-
-    const getScriptPromises = keys.map(async (scriptKey) => {
-      const scriptStream = await this.s3Client.getObjectWrapper(scriptKey);
-      const scriptFileContent = await streamToString(scriptStream);
-      const localScriptPath = join(DATA_DIR, scriptKey);
-      await createDirectory(getFileDirectory(localScriptPath));
-      await fsPromises.writeFile(localScriptPath, scriptFileContent);
-    });
-
-    await Promise.all(getScriptPromises);
   }
 
   public async updateRemoteState(): Promise<void> {
