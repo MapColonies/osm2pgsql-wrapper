@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.1.0...v2.2.0) (2022-08-14)
+
+
+### Features
+
+* filter expired tiles by geometry ([#11](https://github.com/MapColonies/osm2pgsql-wrapper/issues/11)) ([e8230e0](https://github.com/MapColonies/osm2pgsql-wrapper/commit/e8230e08341f7f20c779aa5ea990acbbab4d9d06))
+
 ## [2.1.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.0.1...v2.1.0) (2022-06-15)
 
 
