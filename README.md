@@ -55,6 +55,8 @@ anotherProjectId/
 For the creation of a project the lua script representing the whole project needs to be placed in the bucket under the projectId.
 Project can be created from a dump source provided from a local file, remote url or from [dump-server](https://github.com/MapColonies/dump-server) who provides the latest created dump.
 
+requesting a dump from the `dump-server` might require authentication headers it is possible to attach a single header to the request with the env arg `DUMP_SERVER_HEADERS` e.g. `DUMP_SERVER_HEADERS=X-API-KEY=apikey` or multiple headers with the `-H` arg e.g. `osm2pgsql-wrapper create -H "header1=value1" -H "header2=value2"`
+
 ## Append command
 After the initial creation of a project, data can be appended.
 A project can be divided into multiple sub parts, each sub part's lua script needs to be placed in the bucket under the projectId meaning with the projectId as the script's key prefix.
