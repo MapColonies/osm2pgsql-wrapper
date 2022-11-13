@@ -9,6 +9,9 @@ import { NOT_FOUND_INDEX } from '../../common/constants';
 import { CreateArguments } from '../commands/create/createFactory';
 import { DumpSourceType } from '../commands/create/constants';
 
+const HTTP_HEADERS_CHECK_ARG = 'dump-server-headers';
+const HEADER_KEY_VALUE_PAIR_LENGTH = 2;
+
 type InvalidHandler<T> = (validationResponse: ValidationResponse<T>) => void;
 type CheckFunc<T> = (args: Arguments<T>) => Promise<boolean> | boolean;
 
@@ -69,6 +72,21 @@ export const dumpSourceCheck = (invalidHandler: InvalidHandler<undefined>): Chec
       invalidHandler({ isValid: false, errors: `${errorPrefix}, ${dumpSource} is not a valid web uri` });
     }
 
+    return true;
+  };
+  return check;
+};
+
+// checks whether the dump server headers is in the correct format
+export const dumpServerHeadersCheck = (invalidHandler: InvalidHandler<undefined>): CheckFunc<CreateArguments> => {
+  const check: CheckFunc<CreateArguments> = (args) => {
+    const { dumpServerHeaders } = args;
+
+    if (dumpServerHeaders.length > 0) {
+      if (dumpServerHeaders.some((headerKeyValue) => headerKeyValue.trim().split('=').length !== HEADER_KEY_VALUE_PAIR_LENGTH)) {
+        invalidHandler({ isValid: false, errors: `${HTTP_HEADERS_CHECK_ARG} must be provided in a key=value format` });
+      }
+    }
     return true;
   };
   return check;

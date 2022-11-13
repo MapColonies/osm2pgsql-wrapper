@@ -8,6 +8,7 @@ import { DumpServerEmptyResponseError } from '../../../common/errors';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { DumpSourceType } from './constants';
+import { DumpSourceArgs } from './createFactory';
 
 export class CreateManager {
   public constructor(
@@ -17,8 +18,8 @@ export class CreateManager {
     private readonly remoteResourceManager: RemoteResourceManager
   ) {}
 
-  public async create(projectId: string, luaScriptKey: string, dumpSource: string, dumpSourceType: DumpSourceType): Promise<void> {
-    this.logger.info({ msg: 'creating project', projectId, dumpSourceType, dumpSource, luaScriptKey });
+  public async create(projectId: string, luaScriptKey: string, dumpSourceArgs: DumpSourceArgs): Promise<void> {
+    this.logger.info({ msg: 'creating project', projectId, dumpSourceArgs, luaScriptKey });
 
     const scriptKey = join(projectId, luaScriptKey);
 
@@ -28,25 +29,31 @@ export class CreateManager {
 
     const localScriptPath = this.remoteResourceManager.getResource<string>(scriptKey);
 
-    let localDumpPath = dumpSource;
-
-    if (dumpSourceType !== DumpSourceType.LOCAL_FILE) {
-      const remoteDumpUrl = dumpSourceType === DumpSourceType.DUMP_SERVER ? (await this.getLatestFromDumpServer(dumpSource)).url : dumpSource;
-
-      this.logger.info({ msg: 'getting dump from remote service', url: remoteDumpUrl, projectId });
-
-      localDumpPath = await this.getDumpFromRemoteToFs(remoteDumpUrl);
-    }
+    const localDumpPath = await this.getDump(dumpSourceArgs);
 
     this.logger.info({ msg: 'attempting to osm2pg create', projectId, luaScriptKey });
 
     await this.osmCommandRunner.create([`--style=${localScriptPath}`, localDumpPath]);
   }
 
-  private async getLatestFromDumpServer(dumpServerUrl: string): Promise<DumpMetadataResponse> {
-    const dumpServerResponse = await this.dumpClient.getDumpsMetadata(dumpServerUrl, { limit: 1, sort: 'desc' });
+  private async getDump(dumpSourceArgs: DumpSourceArgs): Promise<string> {
+    const { dumpSourceType, dumpSource } = dumpSourceArgs;
+    switch (dumpSourceType) {
+      case DumpSourceType.LOCAL_FILE:
+        return dumpSource;
+      case DumpSourceType.REMOTE_URL:
+        return this.getDumpFromRemoteToFs(dumpSource);
+      case DumpSourceType.DUMP_SERVER:
+        return this.getDumpFromRemoteToFs((await this.getLatestFromDumpServer(dumpSourceArgs)).url);
+    }
+  }
+
+  private async getLatestFromDumpServer(dumpSourceArgs: DumpSourceArgs): Promise<DumpMetadataResponse> {
+    const { dumpSource, dumpServerHeaders } = dumpSourceArgs;
+    const dumpServerResponse = await this.dumpClient.getDumpsMetadata(dumpSource, { limit: 1, sort: 'desc' }, dumpServerHeaders);
+
     if (dumpServerResponse.data.length === 0) {
-      this.logger.error({ msg: 'received empty dumps response from dump-server', dumpServerUrl });
+      this.logger.error({ msg: 'received empty dumps response from dump-server', dumpSource });
       throw new DumpServerEmptyResponseError(`received empty dumps response from dump-server`);
     }
 

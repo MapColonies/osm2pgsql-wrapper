@@ -4,14 +4,18 @@ import { FactoryFunction } from 'tsyringe';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
 import { ErrorWithExitCode } from '../../../common/errors';
-import { dumpSourceCheck } from '../../checks';
+import { dumpServerHeadersCheck, dumpSourceCheck } from '../../checks';
 import { ValidationResponse } from '../../../validation/validator';
 import { CreateManager } from './createManager';
 import { command, describe, CREATE_MANAGER_FACTORY, DumpSourceType } from './constants';
 
-export interface CreateArguments extends GlobalArguments {
+export interface DumpSourceArgs {
   dumpSourceType: DumpSourceType;
   dumpSource: string;
+  dumpServerHeaders: string[];
+}
+
+export interface CreateArguments extends DumpSourceArgs, GlobalArguments {
   s3LuaScriptKey: string;
 }
 
@@ -33,6 +37,13 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         demandOption: true,
       })
+      .option('dumpServerHeaders', {
+        alias: ['H', 'dump-server-headers'],
+        description: 'The headers to attach to the dump-server request',
+        array: true,
+        type: 'string',
+        default: [] as string[],
+      })
       .option('s3LuaScriptKey', {
         alias: ['l', 's3-lua-script-key'],
         describe: 'The lua script key in s3',
@@ -40,12 +51,13 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         demandOption: true,
       })
-      .check(dumpSourceCheck(throwIfInvalidResponse));
+      .check(dumpSourceCheck(throwIfInvalidResponse))
+      .check(dumpServerHeadersCheck(throwIfInvalidResponse));
     return args as Argv<CreateArguments>;
   };
 
   const handler = async (args: Arguments<CreateArguments>): Promise<void> => {
-    const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, ...restOfArgs } = args;
+    const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, dumpServerHeaders, ...restOfArgs } = args;
     logger.debug({ msg: 'starting wrapper command execution', command, args: restOfArgs });
 
     const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType } = args;
@@ -53,7 +65,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     try {
       const manager = dependencyContainer.resolve<CreateManager>(CREATE_MANAGER_FACTORY);
 
-      await manager.create(s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType);
+      await manager.create(s3ProjectId, s3LuaScriptKey, { dumpSourceType, dumpSource, dumpServerHeaders });
 
       logger.info({ msg: 'finished wrapper command execution successfully', command, project: s3ProjectId });
 

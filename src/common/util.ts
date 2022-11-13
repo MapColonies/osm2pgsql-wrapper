@@ -98,3 +98,12 @@ export const streamToUniqueLines = async (stream: NodeJS.ReadableStream): Promis
 export const sortArrAlphabetically = (arr: string[], sort?: Sort): string[] => {
   return arr.sort((a, b) => (sort === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
 };
+
+export const parseHeaders = (headers: string[]): Record<string, string> => {
+  const requestHeaders: Record<string, string> = {};
+  headers.forEach((headerKeyValue) => {
+    const [key, value] = headerKeyValue.trim().split('=');
+    requestHeaders[key] = value;
+  });
+  return requestHeaders;
+};
