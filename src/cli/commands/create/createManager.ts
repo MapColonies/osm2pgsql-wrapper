@@ -19,7 +19,13 @@ export class CreateManager {
   ) {}
 
   public async create(projectId: string, luaScriptKey: string, dumpSourceArgs: DumpSourceArgs): Promise<void> {
-    this.logger.info({ msg: 'creating project', projectId, dumpSourceArgs, luaScriptKey });
+    this.logger.info({
+      msg: 'creating project',
+      projectId,
+      dumpSourceType: dumpSourceArgs.dumpSourceType,
+      dumpSource: dumpSourceArgs.dumpSource,
+      luaScriptKey,
+    });
 
     const scriptKey = join(projectId, luaScriptKey);
 
