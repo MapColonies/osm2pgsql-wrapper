@@ -99,7 +99,7 @@ export const sortArrAlphabetically = (arr: string[], sort?: Sort): string[] => {
   return arr.sort((a, b) => (sort === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
 };
 
-export const parseHeaders = (headers: string[]): Record<string, string> => {
+export const parseHeadersArg = (headers: string[]): Record<string, string> => {
   const requestHeaders: Record<string, string> = {};
   headers.forEach((headerKeyValue) => {
     const [key, value] = headerKeyValue.trim().split('=');

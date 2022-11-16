@@ -2,7 +2,7 @@ import { inject, injectable } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import qs from 'qs';
 import { AxiosInstance } from 'axios';
-import { parseHeaders } from '../common/util';
+import { parseHeadersArg } from '../common/util';
 import { SERVICES } from '../common/constants';
 import { AxiosRequestArgsWithoutData, BaseClient, HttpResponse } from './baseClient';
 
@@ -36,7 +36,7 @@ export class DumpClient extends BaseClient {
   ): Promise<HttpResponse<DumpMetadataResponse[]>> {
     let requestHeaders = {};
     if (headers !== undefined) {
-      requestHeaders = parseHeaders(headers);
+      requestHeaders = parseHeadersArg(headers);
     }
 
     this.logger.debug({

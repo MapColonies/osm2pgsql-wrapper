@@ -16,7 +16,7 @@ import { CREATE_COMMAND_FACTORY, CREATE_MANAGER_FACTORY } from './cli/commands/c
 import { createManagerFactory } from './cli/commands/create/createManagerFactory';
 import { createCommandFactory } from './cli/commands/create/createFactory';
 import { ShutdownHandler } from './common/shutdownHandler';
-import { parseHeaders } from './common/util';
+import { parseHeadersArg } from './common/util';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -34,7 +34,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       redact: {
         paths: ['args.H', 'args.dumpServerHeaders', 'args["dump-server-headers"]'],
         censor: (headersKeyValArr: string[]) => {
-          return Object.keys(parseHeaders(headersKeyValArr));
+          return Object.keys(parseHeadersArg(headersKeyValArr));
         },
       },
     });
