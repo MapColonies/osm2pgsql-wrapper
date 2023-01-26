@@ -31,6 +31,7 @@ data:
   OSM2PGSQL_GENERATE_EXPIRE_OUTPUT: {{ .Values.env.osm2pgsql.generateExpireOutput | quote }}
   OSM2PGSQL_LOG_LEVEL: {{ .Values.env.osm2pgsql.logLevel | quote }}
   OSM2PGSQL_LOG_PROGRESS: {{ .Values.env.osm2pgsql.logProgress | quote }}
+  OSM2PGSQL_MIDDLE_SCHEMA: {{ .Values.env.osm2pgsql.middleSchema }}
   OSMIUM_VERBOSE: {{ .Values.env.osmium.verbose | quote }}
   OSMIUM_PROGRESS: {{ .Values.env.osmium.progress | quote }}
   {{- with .Values.pgboss }}
