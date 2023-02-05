@@ -18,6 +18,7 @@
     "processes": 2,
     "output": "flex",
     "generateExpireOutput": true,
+    "middleSchema": "public",
     "logger": {
       "level": "info",
       "progress": true
