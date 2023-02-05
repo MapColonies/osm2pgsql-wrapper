@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.3.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.2.0...v2.3.0) (2023-02-05)
+
+
+### Features
+
+* added config to define middle schema ([#13](https://github.com/MapColonies/osm2pgsql-wrapper/issues/13)) ([45e8963](https://github.com/MapColonies/osm2pgsql-wrapper/commit/45e896361c30657a958a35ad433740e3208e3bab))
+
 ## [2.2.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.1.0...v2.2.0) (2022-08-14)
 
 
