@@ -62,6 +62,7 @@ env:
     processes: 2
     output: flex
     generateExpireOutput: true
+    middleSchema: public
     logLevel: info
     logProgress: true
   osmium:
@@ -114,7 +115,7 @@ cli:
     config:
       mountPath: '/tmp/config'
       fileName: 'config.json'
-      path: '/config/append-config.json'
+      path: 'config/append-config.json'
     uploadTargets: 's3,queue' # the upload targets separated with a comma with no space
     queue:
       name: queueName
