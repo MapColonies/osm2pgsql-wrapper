@@ -1,3 +1,4 @@
+import { MediatorConfig } from '@map-colonies/arstotzka-mediator';
 import { LogLevel, OutputType, ResourceType } from './types';
 
 export interface IConfig {
@@ -26,4 +27,10 @@ export interface OsmiumConfig {
 export interface RemoteResource {
   id: string;
   type: ResourceType;
+}
+
+export interface ArstotzkaConfig {
+  enabled: boolean;
+  serviceId: string;
+  mediator: MediatorConfig;
 }
