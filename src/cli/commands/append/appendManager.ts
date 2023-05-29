@@ -87,7 +87,7 @@ export class AppendManager {
     while (!this.stateTracker.isUpToDateOrReachedLimit()) {
       await mediator?.removeLock();
 
-      await mediator?.createAction({ state: this.stateTracker.current, metadata: { project: this.stateTracker.projectId, command: 'append' } });
+      await mediator?.createAction({ state: this.stateTracker.nextState, metadata: { project: this.stateTracker.projectId, command: 'append' } });
 
       await this.appendNextState(replicationUrl);
 
