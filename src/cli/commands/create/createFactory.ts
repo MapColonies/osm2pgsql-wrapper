@@ -66,7 +66,10 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
       const localDump = await manager.loadDump(dumpSource, dumpSourceType);
 
-      await mediator?.createAction({ state: localDump.sequenceNumber, metadata: { command: 'create' } });
+      await mediator?.createAction({
+        state: localDump.sequenceNumber,
+        metadata: { command: 'create', s3ProjectId, s3LuaScriptKey, dumpSourceType, dumpSource },
+      });
 
       await mediator?.removeLock();
 
