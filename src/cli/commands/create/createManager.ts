@@ -1,13 +1,18 @@
 import { join } from 'path';
 import { inject } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
-import { DATA_DIR, DEFAULT_DUMP_NAME, SERVICES } from '../../../common/constants';
+import { DATA_DIR, DEFAULT_DUMP_NAME, PROJECT_CREATION_SEQUENCE_NUMBER, SERVICES } from '../../../common/constants';
 import { streamToFs } from '../../../common/util';
 import { DumpClient, DumpMetadataResponse } from '../../../httpClient/dumpClient';
 import { DumpServerEmptyResponseError } from '../../../common/errors';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { DumpSourceType } from './constants';
+
+interface LocalDump {
+  localPath: string;
+  sequenceNumber: number;
+}
 
 export class CreateManager {
   public constructor(
@@ -17,8 +22,8 @@ export class CreateManager {
     private readonly remoteResourceManager: RemoteResourceManager
   ) {}
 
-  public async create(projectId: string, luaScriptKey: string, dumpSource: string, dumpSourceType: DumpSourceType): Promise<void> {
-    this.logger.info({ msg: 'creating project', projectId, dumpSourceType, dumpSource, luaScriptKey });
+  public async create(projectId: string, luaScriptKey: string, dump: LocalDump): Promise<void> {
+    this.logger.info({ msg: 'creating project', projectId, dump, luaScriptKey });
 
     const scriptKey = join(projectId, luaScriptKey);
 
@@ -28,19 +33,26 @@ export class CreateManager {
 
     const localScriptPath = this.remoteResourceManager.getResource<string>(scriptKey);
 
-    let localDumpPath = dumpSource;
-
-    if (dumpSourceType !== DumpSourceType.LOCAL_FILE) {
-      const remoteDumpUrl = dumpSourceType === DumpSourceType.DUMP_SERVER ? (await this.getLatestFromDumpServer(dumpSource)).url : dumpSource;
-
-      this.logger.info({ msg: 'getting dump from remote service', url: remoteDumpUrl, projectId });
-
-      localDumpPath = await this.getDumpFromRemoteToFs(remoteDumpUrl);
-    }
-
     this.logger.info({ msg: 'attempting to osm2pg create', projectId, luaScriptKey });
 
-    await this.osmCommandRunner.create([`--style=${localScriptPath}`, localDumpPath]);
+    await this.osmCommandRunner.create([`--style=${localScriptPath}`, dump.localPath]);
+  }
+
+  public async loadDump(dumpSource: string, dumpSourceType: DumpSourceType): Promise<LocalDump> {
+    let path: string;
+    let metadata: DumpMetadataResponse;
+
+    switch (dumpSourceType) {
+      case DumpSourceType.LOCAL_FILE:
+        return { localPath: dumpSource, sequenceNumber: PROJECT_CREATION_SEQUENCE_NUMBER };
+      case DumpSourceType.REMOTE_URL:
+        path = await this.getDumpFromRemoteToFs(dumpSource);
+        return { localPath: path, sequenceNumber: PROJECT_CREATION_SEQUENCE_NUMBER };
+      case DumpSourceType.DUMP_SERVER:
+        metadata = await this.getLatestFromDumpServer(dumpSource);
+        path = await this.getDumpFromRemoteToFs(metadata.url);
+        return { localPath: path, sequenceNumber: metadata.sequenceNumber ?? PROJECT_CREATION_SEQUENCE_NUMBER };
+    }
   }
 
   private async getLatestFromDumpServer(dumpServerUrl: string): Promise<DumpMetadataResponse> {

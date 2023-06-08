@@ -4,6 +4,8 @@ import fsPromises from 'fs/promises';
 import { inject } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { BoundingBox } from '@map-colonies/tile-calc';
+import { StatefulMediator } from '@map-colonies/arstotzka-mediator';
+import { ActionStatus } from '@map-colonies/arstotzka-common';
 import { IConfig, RemoteResource } from '../../../common/interfaces';
 import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST } from '../../../common/constants';
 import { streamToUniqueLines, getDiffDirPathComponents, streamToFs, valuesToRange } from '../../../common/util';
@@ -65,7 +67,7 @@ export class AppendManager {
     }
   }
 
-  public async append(replicationUrl: string): Promise<void> {
+  public async append(replicationUrl: string, mediator?: StatefulMediator): Promise<void> {
     await this.stateTracker.getStartSequenceNumber();
 
     await this.stateTracker.getReplicationSequenceNumber(replicationUrl);
@@ -76,10 +78,20 @@ export class AppendManager {
         state: this.stateTracker.current,
         projectId: this.stateTracker.projectId,
       });
+
+      await mediator?.removeLock();
+
       return;
     }
 
     while (!this.stateTracker.isUpToDateOrReachedLimit()) {
+      await mediator?.removeLock();
+
+      await mediator?.createAction({
+        state: this.stateTracker.nextState,
+        metadata: { command: 'append', project: this.stateTracker.projectId, replicationUrl, entities: this.entities },
+      });
+
       await this.appendNextState(replicationUrl);
 
       if (this.shouldGenerateExpireOutput) {
@@ -89,6 +101,8 @@ export class AppendManager {
       await this.stateTracker.updateRemoteState();
 
       this.stateTracker.updateRemainingAppends();
+
+      await mediator?.updateAction({ status: ActionStatus.COMPLETED });
     }
 
     const { projectId, start, current } = this.stateTracker;
