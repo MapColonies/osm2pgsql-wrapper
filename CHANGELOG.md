@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.4.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.3.0...v2.4.0) (2023-06-08)
+
+
+### Features
+
+* arstotzka integration ([#15](https://github.com/MapColonies/osm2pgsql-wrapper/issues/15)) ([24bf0cc](https://github.com/MapColonies/osm2pgsql-wrapper/commit/24bf0cc28f2ff4c4dbe0d6c64e3519741e6942a9))
+
 ## [2.3.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.2.0...v2.3.0) (2023-02-05)
 
 
