@@ -19,6 +19,7 @@ export interface DumpMetadataResponse {
   name: string;
   timestamp: string;
   description: string;
+  sequenceNumber?: number;
   url: string;
 }
 

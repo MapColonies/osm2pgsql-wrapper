@@ -1,6 +1,9 @@
 import { Argv, CommandModule, Arguments } from 'yargs';
 import { Logger } from '@map-colonies/js-logger';
 import { FactoryFunction } from 'tsyringe';
+import { StatefulMediator } from '@map-colonies/arstotzka-mediator';
+import { ActionStatus } from '@map-colonies/arstotzka-common';
+import { ArstotzkaConfig } from '../../../common/interfaces';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
 import { ErrorWithExitCode } from '../../../common/errors';
@@ -50,10 +53,29 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
     const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType } = args;
 
-    try {
-      const manager = dependencyContainer.resolve<CreateManager>(CREATE_MANAGER_FACTORY);
+    const arstotzkaConfig = dependencyContainer.resolve<ArstotzkaConfig>(SERVICES.ARSTOTZKA);
+    let mediator: StatefulMediator | undefined;
+    if (arstotzkaConfig.enabled) {
+      mediator = new StatefulMediator({ ...arstotzkaConfig.mediator, serviceId: arstotzkaConfig.serviceId, logger });
+    }
 
-      await manager.create(s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType);
+    const manager = dependencyContainer.resolve<CreateManager>(CREATE_MANAGER_FACTORY);
+
+    try {
+      await mediator?.reserveAccess();
+
+      const localDump = await manager.loadDump(dumpSource, dumpSourceType);
+
+      await mediator?.createAction({
+        state: localDump.sequenceNumber,
+        metadata: { command: 'create', s3ProjectId, s3LuaScriptKey, dumpSourceType, dumpSource },
+      });
+
+      await mediator?.removeLock();
+
+      await manager.create(s3ProjectId, s3LuaScriptKey, localDump);
+
+      await mediator?.updateAction({ status: ActionStatus.COMPLETED });
 
       logger.info({ msg: 'finished wrapper command execution successfully', command, project: s3ProjectId });
 
@@ -64,6 +86,8 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       if (error instanceof ErrorWithExitCode) {
         exitCode = error.exitCode;
       }
+
+      await mediator?.updateAction({ status: ActionStatus.FAILED, metadata: { error } });
 
       dependencyContainer.register(EXIT_CODE, { useValue: exitCode });
       logger.error({ err: error as Error, msg: 'an error occurred while executing wrapper command', command, exitCode });

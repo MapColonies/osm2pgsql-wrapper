@@ -17,6 +17,7 @@ export const SERVICES: Record<string, symbol> = {
   S3: Symbol('S3'),
   HTTP_CLIENT: Symbol('HttpClient'),
   CONFIG_STORE: Symbol('ConfigStore'),
+  ARSTOTZKA: Symbol('Arstotzka'),
 };
 
 export const ExitCodes = {
@@ -43,6 +44,7 @@ export const DEFAULT_DUMP_NAME = 'dump.osm.pbf';
 export const EXPIRE_LIST = 'expire.list';
 export const DIFF_FILE_EXTENTION = 'osc.gz';
 export const DEFAULT_SEQUENCE_NUMBER = -1;
+export const PROJECT_CREATION_SEQUENCE_NUMBER = 1;
 export const SEQUENCE_NUMBER = 'sequenceNumber';
 export const SEQUENCE_NUMBER_REGEX = /sequenceNumber=\d+/;
 export const SEQUENCE_NUMBER_PADDING_AMOUNT = 3;

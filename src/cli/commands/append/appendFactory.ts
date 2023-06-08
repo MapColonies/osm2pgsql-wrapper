@@ -2,12 +2,15 @@ import fsPromises from 'fs/promises';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { Arguments, Argv, CommandModule } from 'yargs';
+import { ActionStatus } from '@map-colonies/arstotzka-common';
+import { StatefulMediator } from '@map-colonies/arstotzka-mediator';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ValidationResponse } from '../../../validation/validator';
 import { AppendEntity } from '../../../validation/schemas';
 import { ErrorWithExitCode } from '../../../common/errors';
 import { uploadTargetsRegistrationMiddlewareFactory } from '../../middlewares';
+import { ArstotzkaConfig } from '../../../common/interfaces';
 import { ExpireTilesUploadTarget } from '../../../common/types';
 import { configCheck, limitCheck, uploadTargetsCheck } from '../../checks';
 import { AppendManager } from './appendManager';
@@ -36,14 +39,11 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       })
       .option('uploadTargets', {
         alias: ['u', 'upload-targets'],
-        type: 'array',
+        type: 'string',
         describe: 'upload expired tiles to the selected sources',
         choices: ['s3', 'queue'],
-        string: true,
+        array: true,
         default: [] as string[],
-        coerce: (targetsString: string) => {
-          return targetsString[0].split(',');
-        },
       })
       .option('name', {
         alias: ['queue-name'],
@@ -71,8 +71,16 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
     const { config, s3ProjectId, replicationUrl, limit, uploadTargets } = args;
 
+    const arstotzkaConfig = dependencyContainer.resolve<ArstotzkaConfig>(SERVICES.ARSTOTZKA);
+    let mediator: StatefulMediator | undefined;
+    if (arstotzkaConfig.enabled) {
+      mediator = new StatefulMediator({ ...arstotzkaConfig.mediator, serviceId: arstotzkaConfig.serviceId, logger });
+    }
+
+    const manager = dependencyContainer.resolve<AppendManager>(APPEND_MANAGER_FACTORY);
+
     try {
-      const manager = dependencyContainer.resolve<AppendManager>(APPEND_MANAGER_FACTORY);
+      await mediator?.reserveAccess();
 
       const configContent = await fsPromises.readFile(config, 'utf-8');
       const appendEntities = JSON.parse(configContent) as AppendEntity[];
@@ -81,7 +89,7 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
       await manager.prepareManager(s3ProjectId, appendEntities, uploadTargets as ExpireTilesUploadTarget[], limit);
 
-      await manager.append(replicationUrl);
+      await manager.append(replicationUrl, mediator);
 
       logger.info({ msg: 'finished executing wrapper command successfully', command, project: s3ProjectId });
 
@@ -92,6 +100,8 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       if (error instanceof ErrorWithExitCode) {
         exitCode = error.exitCode;
       }
+
+      await mediator?.updateAction({ status: ActionStatus.FAILED, metadata: { error } });
 
       dependencyContainer.register(EXIT_CODE, { useValue: exitCode });
       logger.error({ err: error as Error, msg: 'an error occurred while executing wrapper command', command, exitCode });
