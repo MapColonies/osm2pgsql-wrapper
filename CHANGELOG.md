@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.4.1](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.4.0...v2.4.1) (2023-06-12)
+
+
+### Bug Fixes
+
+* arstotzka remove after create ([a92f577](https://github.com/MapColonies/osm2pgsql-wrapper/commit/a92f577a173f6727aca5c4938d7e677ad79513e9))
+
 ## [2.4.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.3.0...v2.4.0) (2023-06-08)
 
 
