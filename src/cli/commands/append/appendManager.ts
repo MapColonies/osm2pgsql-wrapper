@@ -1,6 +1,7 @@
 import { join } from 'path';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 import { inject } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { BoundingBox } from '@map-colonies/tile-calc';
@@ -21,6 +22,8 @@ import { QueueSettings, TileRequestQueuePayload } from './interfaces';
 import { StateTracker } from './stateTracker';
 import { ExpireTilesParser } from './expireTilesParser';
 import { ExpireTilePostFilterFunc } from './expireTilesFilters';
+
+const MILLISECONDS_IN_SECOND = 1000;
 
 export class AppendManager {
   private entities: AppendEntity[] = [];
@@ -45,8 +48,8 @@ export class AppendManager {
     }
   }
 
-  public async prepareManager(projectId: string, entities: AppendEntity[], uploadTargets: ExpireTilesUploadTarget[], limit?: number): Promise<void> {
-    await this.stateTracker.prepareEnvironment(projectId, limit);
+  public async prepareManager(projectId: string, entities: AppendEntity[], uploadTargets: ExpireTilesUploadTarget[]): Promise<void> {
+    await this.stateTracker.prepareEnvironment(projectId);
 
     this.entities = entities;
 
@@ -68,11 +71,12 @@ export class AppendManager {
   }
 
   public async append(replicationUrl: string, mediator?: StatefulMediator): Promise<void> {
-    await this.stateTracker.getStartSequenceNumber();
+    await mediator?.reserveAccess();
 
+    await this.stateTracker.getStartSequenceNumber();
     await this.stateTracker.getReplicationSequenceNumber(replicationUrl);
 
-    if (this.stateTracker.isUpToDateOrReachedLimit()) {
+    if (this.stateTracker.isUpToDate()) {
       this.logger.info({
         msg: 'state is up to date. there is nothing to append',
         state: this.stateTracker.current,
@@ -84,14 +88,13 @@ export class AppendManager {
       return;
     }
 
-    while (!this.stateTracker.isUpToDateOrReachedLimit()) {
-      await mediator?.removeLock();
+    await mediator?.createAction({
+      state: this.stateTracker.nextState,
+      metadata: { command: 'append', project: this.stateTracker.projectId, replicationUrl, entities: this.entities },
+    });
+    await mediator?.removeLock();
 
-      await mediator?.createAction({
-        state: this.stateTracker.nextState,
-        metadata: { command: 'append', project: this.stateTracker.projectId, replicationUrl, entities: this.entities },
-      });
-
+    try {
       await this.appendNextState(replicationUrl);
 
       if (this.shouldGenerateExpireOutput) {
@@ -99,14 +102,79 @@ export class AppendManager {
       }
 
       await this.stateTracker.updateRemoteState();
-
-      this.stateTracker.updateRemainingAppends();
-
-      await mediator?.updateAction({ status: ActionStatus.COMPLETED });
+    } catch (error) {
+      await mediator?.updateAction({ status: ActionStatus.FAILED });
+      throw error;
     }
 
-    const { projectId, start, current } = this.stateTracker;
-    this.logger.info({ msg: 'successfully appended project', projectId, startState: start, currentState: current });
+    // this.stateTracker.updateRemainingAppends();
+
+    await mediator?.updateAction({ status: ActionStatus.COMPLETED });
+
+    const { projectId, current } = this.stateTracker;
+    this.logger.info({ msg: 'successfully appended project', projectId, currentState: current });
+  }
+
+  public async appendForever(replicationUrl: string, waitTimeSeconds: number, mediator?: StatefulMediator): Promise<void> {
+    let shouldRun = true;
+
+    process.once('SIGTERM', () => {
+      this.logger.debug({
+        msg: 'stopping the append loop from running',
+        projectId: this.stateTracker.projectId,
+      });
+      shouldRun = false;
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    while (shouldRun) {
+      await mediator?.reserveAccess();
+
+      // checking state
+      await this.stateTracker.getStartSequenceNumber();
+      await this.stateTracker.getReplicationSequenceNumber(replicationUrl);
+
+      if (this.stateTracker.isUpToDate()) {
+        this.logger.info({
+          msg: 'State is up to date',
+          state: this.stateTracker.current,
+          projectId: this.stateTracker.projectId,
+        });
+
+        await mediator?.removeLock();
+        await setTimeoutPromise(waitTimeSeconds * MILLISECONDS_IN_SECOND);
+        continue;
+      }
+
+      await mediator?.createAction({
+        state: this.stateTracker.nextState,
+        metadata: { command: 'append', project: this.stateTracker.projectId, replicationUrl, entities: this.entities },
+      });
+
+      await mediator?.removeLock();
+
+      try {
+        await this.appendNextState(replicationUrl);
+
+        if (this.shouldGenerateExpireOutput) {
+          await this.uploadExpired();
+        }
+
+        await this.stateTracker.updateRemoteState();
+      } catch (error) {
+        await mediator?.updateAction({ status: ActionStatus.FAILED });
+        continue;
+      }
+
+      await mediator?.updateAction({ status: ActionStatus.COMPLETED });
+
+      this.logger.info({
+        msg: 'finished processing diff',
+        state: this.stateTracker.current,
+        totalAppends: this.stateTracker.totalAppends,
+        projectId: this.stateTracker.projectId,
+      });
+    }
   }
 
   private async appendNextState(replicationUrl: string): Promise<void> {
@@ -126,6 +194,7 @@ export class AppendManager {
     });
 
     await Promise.all(appendPromises);
+    await Promise.all([fsPromises.unlink(diffPath), fsPromises.unlink(simplifiedDiffPath)]);
   }
 
   private async getDiffToFs(replicationUrl: string): Promise<string> {
@@ -198,6 +267,7 @@ export class AppendManager {
           await this.pushExpiredTilesToQueue(localExpireTilesListPath, entity.geometryKey);
         }
       }
+      await fsPromises.unlink(localExpireTilesListPath);
     });
 
     await Promise.all(uploadPromises);
