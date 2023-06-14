@@ -95,7 +95,6 @@ export class StateTracker {
     this.totalAppends++;
   }
 
-
   private fetchSequenceNumberSafely(content: string): number {
     try {
       return fetchSequenceNumber(content);
