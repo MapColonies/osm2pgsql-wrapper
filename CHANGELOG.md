@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.4.1...v3.0.0) (2023-06-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* added mode to run forever (#17)
+
+### Features
+
+* added mode to run forever ([#17](https://github.com/MapColonies/osm2pgsql-wrapper/issues/17)) ([e12804f](https://github.com/MapColonies/osm2pgsql-wrapper/commit/e12804fc5524f77f2b55d071760f703dbe834895))
+
 ### [2.4.1](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.4.0...v2.4.1) (2023-06-12)
 
 
