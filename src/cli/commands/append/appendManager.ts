@@ -107,8 +107,6 @@ export class AppendManager {
       throw error;
     }
 
-    // this.stateTracker.updateRemainingAppends();
-
     await mediator?.updateAction({ status: ActionStatus.COMPLETED });
 
     const { projectId, current } = this.stateTracker;
