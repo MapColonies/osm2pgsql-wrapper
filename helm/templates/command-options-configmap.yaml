@@ -14,12 +14,13 @@ data:
   {{- if eq .Values.cli.command "append" }}
   S3_ACL: {{ .Values.s3.acl | quote }}
   CONFIG: {{ printf "%s/%s" .Values.cli.append.config.mountPath .Values.cli.append.config.fileName | quote }}
-  {{- if .Values.cli.append.limit.enabled }}
-  LIMIT: {{ .Values.cli.append.limit.value | quote }}
-  {{- end }}
   REPLICATION_URL: {{ .Values.cli.append.replicationUrl | quote }}
   UPLOAD_TARGETS: {{ .Values.cli.append.uploadTargets | quote }}
   NAME: {{ .Values.cli.append.queue.name | quote }}
+  {{- if .Values.deployment.enabled }}
+  FOREVER: 'true'
+  WAIT_TIME_SECONDS: {{ .Values.deployment.waitTimeSeconds | quote }}
+  {{- end }}
   MIN_ZOOM: {{ .Values.cli.append.queue.minZoom | quote }}
   MAX_ZOOM: {{ .Values.cli.append.queue.maxZoom | quote }}
   {{- end }}

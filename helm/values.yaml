@@ -8,7 +8,7 @@ enabled: true
 environment: development
 
 cronAnnotations: {}
-jobAnnotations: {}
+Annotations: {}
 podAnnotations: {}
 
 cloudProvider:
@@ -36,6 +36,10 @@ cron:
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
   concurrencyPolicy: Forbid
+
+deployment:
+  enabled: false
+  waitTimeSeconds: 30
 
 resources:
   enabled: false
@@ -109,9 +113,6 @@ cli:
   command: 'create' # create or append
   append:
     replicationUrl: 'https://planet.openstreetmap.org/replication/minute'
-    limit:
-      enabled: false
-      value: 10
     config:
       mountPath: '/tmp/config'
       fileName: 'config.json'

@@ -1,0 +1,102 @@
+{{- $releaseName := .Release.Name -}}
+{{- $chartName := include "osm2pgsql-wrapper.name" . -}}
+{{- $cloudProviderFlavor := include "osm2pgsql-wrapper.cloudProviderFlavor" . -}}
+{{- $cloudProviderDockerRegistryUrl := include "osm2pgsql-wrapper.cloudProviderDockerRegistryUrl" . -}}
+{{- $tag := include "osm2pgsql-wrapper.tag" . -}}
+{{- if and (.Values.enabled) (.Values.deployment.enabled) -}}
+{{- if or .Values.job.enabled .Values.cron.enabled -}}
+{{ fail "only one of 'job'/'cron'/'deployment' can be enabled at the same time" }}
+{{- end -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $releaseName }}-{{ $chartName }}
+  labels:
+    app: {{ $chartName }}
+    component: {{ $chartName }}
+    environment: {{ include "osm2pgsql-wrapper.environment" . }}
+    release: {{ $releaseName }}
+    {{- include "osm2pgsql-wrapper.labels" . | nindent 4 }}
+{{- with .Values.Annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $chartName }}
+      release: {{ $releaseName }}
+      run: {{ $releaseName }}-{{ $chartName }}
+      {{- include "osm2pgsql-wrapper.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: {{ $chartName }}
+        release: {{ $releaseName }}
+        run: {{ $releaseName }}-{{ $chartName }}
+        {{- include "osm2pgsql-wrapper.selectorLabels" . | nindent 8 }}
+{{- with .Values.podAnnotations }}
+    metadata:
+      annotations:
+{{ toYaml . | indent 8 }}
+{{- end }}
+    spec:
+      containers:
+        - name: {{ $releaseName }}-{{ $chartName }}-job
+          {{- with .Values.image }}
+          {{- if ne $cloudProviderFlavor "minikube" }}
+          image: {{ $cloudProviderDockerRegistryUrl }}/{{ .repository }}:{{ $tag }}
+          {{- else }}
+          image: {{ .repository }}:{{ $tag }}
+          {{- end }}
+          {{- end }}
+          imagePullPolicy: {{ .pullPolicy }}
+          args:
+            - {{ .Values.cli.command }}
+          envFrom:
+            - configMapRef:
+                name: {{ $releaseName }}-{{ $chartName }}-configmap
+            - configMapRef:
+                name: {{ $releaseName }}-{{ $chartName }}-command-options-configmap
+            - configMapRef:
+                name: {{ $releaseName }}-{{ $chartName }}-arstotzka-configmap
+            {{- if and .Values.arstotzka.enabled .Values.arstotzka.networkCM }}
+            - configMapRef:
+                name: {{ .Values.arstotzka.networkCM }}
+            {{- end }}
+            - secretRef:
+                name: {{ $releaseName }}-{{ $chartName }}-secret
+          {{- if .Values.resources.enabled }}
+          resources:
+            {{- toYaml .Values.resources.value | nindent 16 }}
+          {{- end }}
+          volumeMounts:
+          {{- if eq .Values.cli.command "append" }}
+            - name: config-schema
+              mountPath: {{ .Values.cli.append.config.mountPath }}
+          {{- end }}
+          {{- if .Values.postgres.sslAuth.enabled }}
+            - name: postgres-cert-conf
+              mountPath: {{ .Values.postgres.sslAuth.mountPath }}
+          {{- end }}
+          {{- if .Values.pgboss.sslAuth.enabled }}
+            - name: pgboss-cert-conf
+              mountPath: {{ .Values.pgboss.sslAuth.mountPath }}
+          {{- end }}
+      volumes:
+        {{- if eq .Values.cli.command "append" }}
+        - name: config-schema
+          configMap:
+            name: {{ $releaseName }}-{{ $chartName }}-schema-configmap
+        {{- end }}
+        {{- if .Values.postgres.sslAuth.enabled }}
+        - name: postgres-cert-conf
+          secret:
+            secretName: {{ .Values.postgres.sslAuth.secretName }}
+        {{- end }}
+        {{- if .Values.pgboss.sslAuth.enabled }}
+        - name: pgboss-cert-conf
+          secret:
+            secretName: {{ .Values.pgboss.sslAuth.secretName }}
+        {{- end }}
+{{- end -}}

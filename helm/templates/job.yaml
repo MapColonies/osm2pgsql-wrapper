@@ -4,6 +4,9 @@
 {{- $cloudProviderDockerRegistryUrl := include "osm2pgsql-wrapper.cloudProviderDockerRegistryUrl" . -}}
 {{- $tag := include "osm2pgsql-wrapper.tag" . -}}
 {{- if and (.Values.enabled) (.Values.job.enabled) -}}
+{{- if or .Values.cron.enabled .Values.deployment.enabled -}}
+{{ fail "only one of 'job'/'cron'/'deployment' can be enabled at the same time" }}
+{{- end -}}
 apiVersion: {{ .Values.job.apiVersion | quote }}
 kind: Job
 metadata:
@@ -14,7 +17,7 @@ metadata:
     environment: {{ include "osm2pgsql-wrapper.environment" . }}
     release: {{ $releaseName }}
     {{- include "osm2pgsql-wrapper.labels" . | nindent 4 }}
-{{- with .Values.jobAnnotations }}
+{{- with .Values.Annotations }}
   annotations:
 {{ toYaml . | indent 4 }}
 {{- end }}
