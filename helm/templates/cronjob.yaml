@@ -4,6 +4,9 @@
 {{- $cloudProviderDockerRegistryUrl := include "osm2pgsql-wrapper.cloudProviderDockerRegistryUrl" . -}}
 {{- $tag := include "osm2pgsql-wrapper.tag" . -}}
 {{- if and (.Values.enabled) (.Values.cron.enabled) -}}
+{{- if or .Values.job.enabled .Values.deployment.enabled -}}
+{{ fail "only one of 'job'/'cron'/'deployment' can be enabled at the same time" }}
+{{- end -}}
 apiVersion: {{ .Values.cron.apiVersion | quote }}
 kind: CronJob
 metadata:

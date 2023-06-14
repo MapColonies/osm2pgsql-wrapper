@@ -5,7 +5,8 @@ export interface BaseAppendArguments extends GlobalArguments {
   config: string;
   replicationUrl: string;
   s3Acl: string;
-  limit?: number;
+  forever?: boolean;
+  waitTimeSeconds?: number;
   uploadTargets: string[];
 }
 

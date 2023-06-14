@@ -11,12 +11,10 @@ let stateContent: string;
 
 @singleton()
 export class StateTracker {
-  public start = DEFAULT_SEQUENCE_NUMBER;
-  public replicationEndState = DEFAULT_SEQUENCE_NUMBER;
+  public replicationRemoteState = DEFAULT_SEQUENCE_NUMBER;
   public current = DEFAULT_SEQUENCE_NUMBER;
   public projectId = '';
-  private remainingAppends?: number;
-  private totalRequestedAppends?: number;
+  public totalAppends = 0;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -28,12 +26,8 @@ export class StateTracker {
     return this.current + 1;
   }
 
-  public async prepareEnvironment(projectId: string, limit?: number): Promise<void> {
+  public async prepareEnvironment(projectId: string): Promise<void> {
     this.projectId = projectId;
-    if (limit !== undefined) {
-      this.totalRequestedAppends = limit;
-      this.remainingAppends = limit;
-    }
 
     const dir = join(DATA_DIR, projectId);
 
@@ -46,12 +40,8 @@ export class StateTracker {
     }
   }
 
-  public isUpToDateOrReachedLimit(): boolean {
-    if (this.remainingAppends === 0) {
-      this.logger.info({ msg: 'append limitation has reached', limitation: this.totalRequestedAppends, projectId: this.projectId });
-      return true;
-    }
-    return this.current === this.replicationEndState;
+  public isUpToDate(): boolean {
+    return this.current === this.replicationRemoteState;
   }
 
   public async getStartSequenceNumber(): Promise<void> {
@@ -60,13 +50,12 @@ export class StateTracker {
     const stateKey = join(this.projectId, STATE_FILE);
     const stateStream = await this.s3Client.getObjectWrapper(stateKey);
     stateContent = await streamToString(stateStream);
-    this.start = this.fetchSequenceNumberSafely(stateContent);
-    this.current = this.start;
+    this.current = this.fetchSequenceNumberSafely(stateContent);
 
     this.logger.info({
       msg: 'fetched start state from bucket',
       projectId: this.projectId,
-      startState: this.start,
+      startState: this.current,
       bucketName: this.s3Client.bucketName,
     });
   }
@@ -75,13 +64,13 @@ export class StateTracker {
     this.logger.debug({ msg: 'getting end state from remote replication source', projectId: this.projectId, replicationUrl });
 
     const response = await this.replicationClient.getState(replicationUrl);
-    this.replicationEndState = this.fetchSequenceNumberSafely(response.data);
+    this.replicationRemoteState = this.fetchSequenceNumberSafely(response.data);
 
     this.logger.info({
       msg: 'fetched remote replication source end state',
       projectId: this.projectId,
       replicationUrl,
-      endState: this.replicationEndState,
+      endState: this.replicationRemoteState,
     });
   }
 
@@ -103,18 +92,7 @@ export class StateTracker {
     const stateKey = join(this.projectId, STATE_FILE);
 
     await this.s3Client.putObjectWrapper(stateKey, stateBuffer);
-  }
-
-  public updateRemainingAppends(): void {
-    if (this.totalRequestedAppends !== undefined) {
-      this.logger.info({
-        msg: 'append status',
-        appendNumber: this.totalRequestedAppends - (this.remainingAppends as number) + 1,
-        limitation: this.totalRequestedAppends,
-        projectId: this.projectId,
-      });
-      (this.remainingAppends as number)--;
-    }
+    this.totalAppends++;
   }
 
   private fetchSequenceNumberSafely(content: string): number {

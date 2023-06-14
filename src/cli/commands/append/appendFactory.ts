@@ -2,7 +2,6 @@ import fsPromises from 'fs/promises';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { Arguments, Argv, CommandModule } from 'yargs';
-import { ActionStatus } from '@map-colonies/arstotzka-common';
 import { StatefulMediator } from '@map-colonies/arstotzka-mediator';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
@@ -17,6 +16,8 @@ import { AppendManager } from './appendManager';
 import { command, describe, APPEND_MANAGER_FACTORY } from './constants';
 import { AppendArguments } from './interfaces';
 
+const DEFAULT_WAIT_TIME_SECONDS = 10;
+
 export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments, AppendArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
 
@@ -30,7 +31,12 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         demandOption: true,
       })
       .option('replicationUrl', { alias: ['r', 'replication-url'], describe: 'The replication url', nargs: 1, type: 'string', demandOption: true })
-      .option('limit', { alias: 'l', describe: 'Limit the number of appends per run', nargs: 1, type: 'number' })
+      .option('forever', { alias: 'f', describe: 'Process diffs in loop forever without stopping', type: 'boolean' })
+      .option('waitTimeSeconds', {
+        alias: 't',
+        describe: 'The amount of time to wait between state checks when the local state is up to date',
+        type: 'number',
+      })
       .option('s3Acl', {
         alias: ['a', 's3-acl'],
         describe: 'The canned acl policy for uploaded objects',
@@ -66,10 +72,10 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
   };
 
   const handler = async (args: Arguments<AppendArguments>): Promise<void> => {
-    const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, pgbossUsername, pgBossPassword, ...restOfArgs } = args;
+    const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, pgbossUsername, pgBossPassword, forever, waitTimeSeconds, ...restOfArgs } = args;
     logger.debug({ msg: 'starting wrapper command execution', command, args: restOfArgs });
 
-    const { config, s3ProjectId, replicationUrl, limit, uploadTargets } = args;
+    const { config, s3ProjectId, replicationUrl, uploadTargets } = args;
 
     const arstotzkaConfig = dependencyContainer.resolve<ArstotzkaConfig>(SERVICES.ARSTOTZKA);
     let mediator: StatefulMediator | undefined;
@@ -80,16 +86,18 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     const manager = dependencyContainer.resolve<AppendManager>(APPEND_MANAGER_FACTORY);
 
     try {
-      await mediator?.reserveAccess();
-
       const configContent = await fsPromises.readFile(config, 'utf-8');
       const appendEntities = JSON.parse(configContent) as AppendEntity[];
 
-      logger.debug({ msg: 'append configuration', projectId: s3ProjectId, entitiesCount: appendEntities.length, limitation: limit });
+      logger.debug({ msg: 'append configuration', projectId: s3ProjectId, entitiesCount: appendEntities.length });
 
-      await manager.prepareManager(s3ProjectId, appendEntities, uploadTargets as ExpireTilesUploadTarget[], limit);
+      await manager.prepareManager(s3ProjectId, appendEntities, uploadTargets as ExpireTilesUploadTarget[]);
 
-      await manager.append(replicationUrl, mediator);
+      if (forever === true) {
+        await manager.appendForever(replicationUrl, waitTimeSeconds ?? DEFAULT_WAIT_TIME_SECONDS, mediator);
+      } else {
+        await manager.append(replicationUrl, mediator);
+      }
 
       logger.info({ msg: 'finished executing wrapper command successfully', command, project: s3ProjectId });
 
@@ -100,8 +108,6 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       if (error instanceof ErrorWithExitCode) {
         exitCode = error.exitCode;
       }
-
-      await mediator?.updateAction({ status: ActionStatus.FAILED, metadata: { error } });
 
       dependencyContainer.register(EXIT_CODE, { useValue: exitCode });
       logger.error({ err: error as Error, msg: 'an error occurred while executing wrapper command', command, exitCode });
