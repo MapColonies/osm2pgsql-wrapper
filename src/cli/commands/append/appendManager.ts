@@ -306,11 +306,12 @@ export class AppendManager {
       return;
     }
 
+    const minZoom = (this.queueSettings as QueueSettings).minZoom;
+    const maxZoom = (this.queueSettings as QueueSettings).maxZoom;
+
     const payload: TileRequestQueuePayload = {
-      bbox: expiredTilesBbox,
+      items: expiredTilesBbox.map((bbox) => ({ area: bbox, minZoom, maxZoom })),
       source: 'expiredTiles',
-      minZoom: (this.queueSettings as QueueSettings).minZoom,
-      maxZoom: (this.queueSettings as QueueSettings).maxZoom,
     };
 
     await this.pushPayloadToQueue(payload);
