@@ -6,10 +6,9 @@ metadata:
   name: osm2pgsql-wrapper
   description: A wrapper for osm2pgsql supporting job / cronjob functionality for creating and appending data.
   tags:
-    - wrapper
+    - osm2pgsql
     - typescript
     - vector
-    - ingestion
 spec:
   type: service
   lifecycle: production
