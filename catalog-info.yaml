@@ -8,6 +8,8 @@ metadata:
   tags:
     - wrapper
     - typescript
+    - vector
+    - ingestion
 spec:
   type: service
   lifecycle: production
