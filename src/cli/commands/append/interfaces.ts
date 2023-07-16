@@ -1,5 +1,11 @@
 import { BoundingBox } from '@map-colonies/tile-calc';
+import { Feature } from '@turf/turf';
 import { GlobalArguments } from '../../cliBuilderFactory';
+
+interface BaseTilesRequest {
+  minZoom: number;
+  maxZoom: number;
+}
 
 export interface BaseAppendArguments extends GlobalArguments {
   config: string;
@@ -18,9 +24,11 @@ export interface QueueSettings {
 
 export type AppendArguments = BaseAppendArguments & Partial<QueueSettings>;
 
-export interface TileRequestQueuePayload {
-  bbox: BoundingBox[];
-  minZoom: number;
-  maxZoom: number;
-  source: 'api' | 'expiredTiles';
+export interface TileRequestQueuePayloadItem<A = BoundingBox | Feature> extends BaseTilesRequest {
+  area: A;
+}
+
+export interface TileRequestQueuePayload<A = BoundingBox | Feature> {
+  items: TileRequestQueuePayloadItem<A>[];
+  source: 'expiredTiles';
 }
