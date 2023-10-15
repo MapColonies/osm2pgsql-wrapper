@@ -24,7 +24,12 @@ RUN apt-get -y update && apt -y install \
   liblua5.3-dev \
   pandoc \
   git-core \
-  libboost-program-options-dev
+  libboost-program-options-dev \
+  libopencv-dev \
+  nlohmann-json3-dev \
+  libpotrace-dev \
+  lua5.3 \
+  pyosmium
 
 RUN git clone ${OSM2PGSQL_REPOSITORY} ./osm2pgsql && \
   cd osm2pgsql && \
