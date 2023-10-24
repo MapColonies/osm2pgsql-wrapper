@@ -34,7 +34,7 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       .option('forever', { alias: 'f', describe: 'Process diffs in loop forever without stopping', type: 'boolean' })
       .option('waitTimeSeconds', {
         alias: 't',
-        describe: 'The amount of time to wait between state checks when the local state is up to date',
+        describe: 'The amount of time to wait between state checks when the local state is up to date or when error occurs',
         type: 'number',
       })
       .option('s3Acl', {

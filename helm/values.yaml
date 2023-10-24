@@ -36,6 +36,7 @@ cron:
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
   concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 200
 
 deployment:
   enabled: false

@@ -161,6 +161,7 @@ export class AppendManager {
         await this.stateTracker.updateRemoteState();
       } catch (error) {
         await mediator?.updateAction({ status: ActionStatus.FAILED });
+        await setTimeoutPromise(waitTimeSeconds * MILLISECONDS_IN_SECOND);
         continue;
       }
 

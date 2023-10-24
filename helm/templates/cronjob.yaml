@@ -23,6 +23,7 @@ metadata:
 {{- end }}
 spec:
   schedule: {{ .Values.cron.schedule | quote }}
+  startingDeadlineSeconds: {{ .Values.cron.startingDeadlineSeconds }}
   successfulJobsHistoryLimit: {{ .Values.cron.successfulJobsHistoryLimit }}
   failedJobsHistoryLimit: {{ .Values.cron.failedJobsHistoryLimit }}
   concurrencyPolicy: {{ .Values.cron.concurrencyPolicy }}
