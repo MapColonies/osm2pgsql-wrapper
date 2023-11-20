@@ -67,9 +67,13 @@ env:
     processes: 2
     output: flex
     generateExpireOutput: true
+    schema: public
     middleSchema: public
-    logLevel: info
-    logProgress: true
+    log:
+      level: info
+      progress: true
+      sql: false
+      sqlData: false
   osmium:
     verbose: false
     progress: false

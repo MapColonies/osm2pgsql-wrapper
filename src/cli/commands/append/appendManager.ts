@@ -266,7 +266,10 @@ export class AppendManager {
           await this.pushExpiredTilesToQueue(localExpireTilesListPath, entity.geometryKey);
         }
       }
-      await fsPromises.unlink(localExpireTilesListPath);
+
+      if (fs.existsSync(localExpireTilesListPath)) {
+        await fsPromises.unlink(localExpireTilesListPath);
+      }
     });
 
     await Promise.all(uploadPromises);
