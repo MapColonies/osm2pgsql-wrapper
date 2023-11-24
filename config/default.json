@@ -18,10 +18,13 @@
     "processes": 2,
     "output": "flex",
     "generateExpireOutput": true,
+    "schema": "public",
     "middleSchema": "public",
     "logger": {
       "level": "info",
-      "progress": true
+      "progress": true,
+      "sql": false,
+      "sqlData": false
     }
   },
   "osmium": {

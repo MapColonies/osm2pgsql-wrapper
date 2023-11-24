@@ -12,10 +12,13 @@ export interface Osm2pgsqlConfig {
   processes: number;
   output: OutputType;
   expireOutput: boolean;
+  schema: string;
   middleSchema: string;
   logger: {
     level: LogLevel;
     progress: boolean;
+    sql: boolean;
+    sqlData: boolean;
   };
 }
 

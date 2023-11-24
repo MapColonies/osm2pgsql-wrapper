@@ -4,10 +4,10 @@ FROM ubuntu:20.04 as build
 
 ENV DEBIAN_FRONTEND=noninteractive
 ARG OSM2PGSQL_REPOSITORY=https://github.com/MapColonies/osm2pgsql.git
-ARG OSM2PGSQL_COMMIT_SHA=dd8651684baf7d5643dcc8e3f34515992fe60aef
-ARG OSMIUM_TOOL_TAG=v1.13.2
-ARG PROTOZERO_TAG=v1.7.0
-ARG LIBOSMIUM_TAG=v2.17.2
+ARG OSM2PGSQL_COMMIT_SHA=6c68ead630575bc2545cd668c6e6dc7b6d4772f9
+ARG OSMIUM_TOOL_TAG=v1.16.0
+ARG PROTOZERO_TAG=v1.7.1
+ARG LIBOSMIUM_TAG=v2.20.0
 
 RUN apt-get -y update && apt -y install \
   make \
@@ -24,7 +24,12 @@ RUN apt-get -y update && apt -y install \
   liblua5.3-dev \
   pandoc \
   git-core \
-  libboost-program-options-dev
+  libboost-program-options-dev \
+  libopencv-dev \
+  nlohmann-json3-dev \
+  libpotrace-dev \
+  lua5.3 \
+  pyosmium
 
 RUN git clone ${OSM2PGSQL_REPOSITORY} ./osm2pgsql && \
   cd osm2pgsql && \

@@ -161,6 +161,7 @@ export class AppendManager {
         await this.stateTracker.updateRemoteState();
       } catch (error) {
         await mediator?.updateAction({ status: ActionStatus.FAILED });
+        await setTimeoutPromise(waitTimeSeconds * MILLISECONDS_IN_SECOND);
         continue;
       }
 
@@ -222,7 +223,7 @@ export class AppendManager {
     });
 
     const simplifiedDiffPath = join(DATA_DIR, `${this.stateTracker.nextState}.simplified.${DIFF_FILE_EXTENTION}`);
-    await this.osmCommandRunner.mergeChanges([`${diffPath}`, `--output=${simplifiedDiffPath}`]);
+    await this.osmCommandRunner.mergeChanges([`${diffPath}`, `--output=${simplifiedDiffPath}`, `--overwrite`]);
     return simplifiedDiffPath;
   }
 
@@ -265,7 +266,10 @@ export class AppendManager {
           await this.pushExpiredTilesToQueue(localExpireTilesListPath, entity.geometryKey);
         }
       }
-      await fsPromises.unlink(localExpireTilesListPath);
+
+      if (fs.existsSync(localExpireTilesListPath)) {
+        await fsPromises.unlink(localExpireTilesListPath);
+      }
     });
 
     await Promise.all(uploadPromises);
