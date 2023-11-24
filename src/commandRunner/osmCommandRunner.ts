@@ -63,7 +63,14 @@ export class OsmCommandRunner {
     osm2pgsqlArgs.push(`--output=${osm2pgsqlConfig.output}`);
     osm2pgsqlArgs.push(`--log-level=${osm2pgsqlConfig.logger.level}`);
     osm2pgsqlArgs.push(`--log-progress=${osm2pgsqlConfig.logger.progress ? 'true' : 'false'}`);
+    osm2pgsqlArgs.push(`--schema=${osm2pgsqlConfig.schema}`);
     osm2pgsqlArgs.push(`--middle-schema=${osm2pgsqlConfig.middleSchema}`);
+    if (osm2pgsqlConfig.logger.sql) {
+      osm2pgsqlArgs.push('--log-sql');
+    }
+    if (osm2pgsqlConfig.logger.sqlData) {
+      osm2pgsqlArgs.push('--log-sql-data');
+    }
 
     const osmiumConfig = config.get<OsmiumConfig>('osmium');
     const osmiumArgs = this.globalCommandArgs.osmium;

@@ -117,9 +117,9 @@ Postgres authentication should be defined by the following env varaibles: `PGHOS
 - `NODE_VERSION` - the version of node. currently supports 14 and 16, defaults to 16
 - `OSM2PGSQL_REPOSITORY` - the repository of osm2pgsql to be built, defaults to [MapColonies forked osm2pgsql](https://github.com/MapColonies/osm2pgsql.git).
 - `OSM2PGSQL_COMMIT_SHA` - the commit SHA of osm2pgsql to be built.
-- `OSMIUM_TOOL_TAG` - the tag version of osm2pgsql to be built, defaults to v1.13.2.
-- `PROTOZERO_TAG` - the tag version of osm2pgsql to be built, defaults to v1.7.0.
-- `LIBOSMIUM_TAG` - the tag version of osm2pgsql to be built, defaults to v2.17.2.
+- `OSMIUM_TOOL_TAG` - the tag version of osm2pgsql to be built, defaults to v1.16.0.
+- `PROTOZERO_TAG` - the tag version of osm2pgsql to be built, defaults to v1.7.1.
+- `LIBOSMIUM_TAG` - the tag version of osm2pgsql to be built, defaults to v2.20.0.
 
 ### Building the container
 

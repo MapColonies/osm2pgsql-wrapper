@@ -42,11 +42,20 @@
       "__name": "OSM2PGSQL_GENERATE_EXPIRE_OUTPUT",
       "__format": "boolean"
     },
+    "schema": "OSM2PGSQL_SCHEMA",
     "middleSchema": "OSM2PGSQL_MIDDLE_SCHEMA",
     "logger": {
       "level": "OSM2PGSQL_LOG_LEVEL",
       "progress": {
         "__name": "OSM2PGSQL_LOG_PROGRESS",
+        "__format": "boolean"
+      },
+      "sql": {
+        "__name": "OSM2PGSQL_LOG_SQL",
+        "__format": "boolean"
+      },
+      "sqlData": {
+        "__name": "OSM2PGSQL_LOG_SQL_DATA",
         "__format": "boolean"
       }
     }

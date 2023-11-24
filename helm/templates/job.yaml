@@ -17,7 +17,7 @@ metadata:
     environment: {{ include "osm2pgsql-wrapper.environment" . }}
     release: {{ $releaseName }}
     {{- include "osm2pgsql-wrapper.labels" . | nindent 4 }}
-{{- with .Values.Annotations }}
+{{- with .Values.annotations }}
   annotations:
 {{ toYaml . | indent 4 }}
 {{- end }}
