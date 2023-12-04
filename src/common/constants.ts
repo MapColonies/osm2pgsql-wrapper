@@ -7,6 +7,7 @@ export const IGNORED_INCOMING_TRACE_ROUTES = [/^.*\/docs.*$/];
 
 export const CLI_BUILDER = Symbol('cliBuilder');
 export const EXIT_CODE = Symbol('exitCode');
+export const ON_SIGNAL = Symbol('onSignal');
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const SERVICES: Record<string, symbol> = {
@@ -18,6 +19,7 @@ export const SERVICES: Record<string, symbol> = {
   HTTP_CLIENT: Symbol('HttpClient'),
   CONFIG_STORE: Symbol('ConfigStore'),
   ARSTOTZKA: Symbol('Arstotzka'),
+  CLEANUP_REGISTRY: Symbol('CleanupRegistry'),
 };
 
 export const ExitCodes = {

@@ -91,6 +91,8 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
       dependencyContainer.register(EXIT_CODE, { useValue: exitCode });
       logger.error({ err: error as Error, msg: 'an error occurred while executing wrapper command', command, exitCode });
+
+      throw error;
     }
   };
 

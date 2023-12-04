@@ -18,6 +18,7 @@ import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { QueueProvider } from '../../../queue/queueProvider';
 import { RequestAlreadyInQueueError } from '../../../common/errors';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
+import { terminateChildren } from '../../../commandRunner/spawner';
 import { QueueSettings, TileRequestQueuePayload } from './interfaces';
 import { StateTracker } from './stateTracker';
 import { ExpireTilesParser } from './expireTilesParser';
@@ -103,7 +104,8 @@ export class AppendManager {
 
       await this.stateTracker.updateRemoteState();
     } catch (error) {
-      await mediator?.updateAction({ status: ActionStatus.FAILED });
+      terminateChildren();
+      await mediator?.updateAction({ status: ActionStatus.FAILED, metadata: { error } });
       throw error;
     }
 
@@ -160,7 +162,8 @@ export class AppendManager {
 
         await this.stateTracker.updateRemoteState();
       } catch (error) {
-        await mediator?.updateAction({ status: ActionStatus.FAILED });
+        terminateChildren();
+        await mediator?.updateAction({ status: ActionStatus.FAILED, metadata: { error } });
         await setTimeoutPromise(waitTimeSeconds * MILLISECONDS_IN_SECOND);
         continue;
       }
@@ -223,7 +226,7 @@ export class AppendManager {
     });
 
     const simplifiedDiffPath = join(DATA_DIR, `${this.stateTracker.nextState}.simplified.${DIFF_FILE_EXTENTION}`);
-    await this.osmCommandRunner.mergeChanges([`${diffPath}`, `--output=${simplifiedDiffPath}`, `--overwrite`]);
+    await this.osmCommandRunner.mergeChanges(diffPath, simplifiedDiffPath);
     return simplifiedDiffPath;
   }
 
@@ -258,12 +261,33 @@ export class AppendManager {
       const expireTilesFileName = `${entity.id}.${this.stateTracker.nextState}.${EXPIRE_LIST}`;
       const localExpireTilesListPath = join(DATA_DIR, this.stateTracker.projectId, expireTilesFileName);
 
+      if (!fs.existsSync(localExpireTilesListPath)) {
+        this.logger.warn({
+          msg: 'no expired tiles list found, skipping upload',
+          entityId: entity.id,
+          projectId: this.stateTracker.projectId,
+          state: this.stateTracker.nextState,
+          localExpireTilesListPath,
+        });
+        return Promise.resolve();
+      }
+
+      const expireListStream = fs.createReadStream(localExpireTilesListPath);
+      const expireList = await streamToUniqueLines(expireListStream);
+      this.logger.debug({
+        msg: 'uploading expired tiles',
+        projectId: this.stateTracker.projectId,
+        entityId: entity.id,
+        localExpireTilesListPath,
+        expireListCount: expireList.length,
+      });
+
       for await (const target of this.uploadTargets) {
         if (target === 's3') {
           await this.uploadExpiredListToS3(localExpireTilesListPath, entity.id);
         }
         if (target === 'queue') {
-          await this.pushExpiredTilesToQueue(localExpireTilesListPath, entity.geometryKey);
+          await this.pushExpiredTilesToQueue(expireList, entity.geometryKey);
         }
       }
 
@@ -291,10 +315,7 @@ export class AppendManager {
     await this.s3Client.putObjectWrapper(expireListKey, expireTilesListBuffer);
   }
 
-  private async pushExpiredTilesToQueue(expireListPath: string, geometryKey?: string): Promise<void> {
-    const expireListStream = fs.createReadStream(expireListPath);
-    const expireList = await streamToUniqueLines(expireListStream);
-
+  private async pushExpiredTilesToQueue(expireList: string[], geometryKey?: string): Promise<void> {
     if (expireList.length === 0) {
       this.logger.info({ msg: 'no expire tiles to push to queue', reason: 'generated expire list is empty' });
       return;

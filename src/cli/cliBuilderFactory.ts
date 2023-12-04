@@ -1,6 +1,7 @@
 import yargs from 'yargs/yargs';
 import { Argv, CommandModule } from 'yargs';
 import { FactoryFunction } from 'tsyringe';
+import { ON_SIGNAL } from '../common/constants';
 import { CREATE_COMMAND_FACTORY } from './commands/create/constants';
 import { APPEND_COMMAND_FACTORY } from './commands/append/constants';
 import { s3RegistrationMiddlewareFactory } from './middlewares';
@@ -32,7 +33,13 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
       demandOption: true,
     })
     .help('h')
-    .alias('h', 'help');
+    .alias('h', 'help')
+    .fail(async () => {
+      if (dependencyContainer.isRegistered(ON_SIGNAL)) {
+        const onSignalFn: () => Promise<void> = dependencyContainer.resolve(ON_SIGNAL);
+        await onSignalFn();
+      }
+    });
 
   args.middleware(s3RegistrationMiddlewareFactory(dependencyContainer));
 

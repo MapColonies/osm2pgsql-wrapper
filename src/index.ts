@@ -5,9 +5,8 @@ import './common/tracing';
 import { Logger } from '@map-colonies/js-logger';
 import { hideBin } from 'yargs/helpers';
 import { DependencyContainer } from 'tsyringe';
-import { ExitCodes, EXIT_CODE, SERVICES } from './common/constants';
+import { ExitCodes, EXIT_CODE, ON_SIGNAL, SERVICES } from './common/constants';
 import { getCli } from './cli/cli';
-import { ShutdownHandler } from './common/shutdownHandler';
 
 let depContainer: DependencyContainer | undefined;
 
@@ -16,25 +15,29 @@ const exitProcess = (): void => {
   process.exit(exitCode);
 };
 
+const shutDownFn = async (): Promise<void> => {
+  if (depContainer?.isRegistered(ON_SIGNAL) === true) {
+    const onSignalFn: () => Promise<void> = depContainer.resolve(ON_SIGNAL);
+    return onSignalFn();
+  }
+};
+
 void getCli()
   .then(async ([container, cli]) => {
     depContainer = container;
     await cli.parseAsync(hideBin(process.argv));
+    await shutDownFn();
   })
-  .catch((error: Error) => {
+  .catch(async (error: Error) => {
     const errorLogger =
       depContainer?.isRegistered(SERVICES.LOGGER) === true
         ? depContainer.resolve<Logger>(SERVICES.LOGGER).error.bind(depContainer.resolve<Logger>(SERVICES.LOGGER))
         : console.error;
 
-    errorLogger({ msg: '😢 - failed initializing the cli', err: error });
+    errorLogger({ msg: 'something went wrong', err: error });
+
+    await shutDownFn();
   })
   .finally(() => {
-    if (depContainer?.isRegistered(ShutdownHandler) === true) {
-      const shutdownHandler = depContainer.resolve(ShutdownHandler);
-      void shutdownHandler.onShutdown().then(() => {
-        exitProcess();
-      });
-    }
     exitProcess();
   });

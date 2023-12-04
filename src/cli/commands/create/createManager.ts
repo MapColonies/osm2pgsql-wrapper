@@ -35,7 +35,7 @@ export class CreateManager {
 
     this.logger.info({ msg: 'attempting to osm2pg create', projectId, luaScriptKey });
 
-    await this.osmCommandRunner.create([`--style=${localScriptPath}`, dump.localPath]);
+    await this.osmCommandRunner.create(localScriptPath, dump.localPath);
   }
 
   public async loadDump(dumpSource: string, dumpSourceType: DumpSourceType): Promise<LocalDump> {

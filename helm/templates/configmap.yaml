@@ -29,7 +29,7 @@ data:
   OSM2PGSQL_PROCESSES: {{ .Values.env.osm2pgsql.processes | quote }}
   OSM2PGSQL_OUTPUT: {{ .Values.env.osm2pgsql.output | quote }}
   OSM2PGSQL_GENERATE_EXPIRE_OUTPUT: {{ .Values.env.osm2pgsql.generateExpireOutput | quote }}
-  OSM2PGSQL_LOG_LEVEL: {{ .Values.env.osm2pgsql.log.Level | quote }}
+  OSM2PGSQL_LOG_LEVEL: {{ .Values.env.osm2pgsql.log.level | quote }}
   OSM2PGSQL_LOG_PROGRESS: {{ .Values.env.osm2pgsql.log.progress | quote }}
   OSM2PGSQL_LOG_SQL: {{ .Values.env.osm2pgsql.log.sql | quote }}
   OSM2PGSQL_LOG_SQL_DATA: {{ .Values.env.osm2pgsql.log.sqlData | quote }}

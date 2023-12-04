@@ -6,6 +6,20 @@ export interface IConfig {
   has: (setting: string) => boolean;
 }
 
+export interface LogFn {
+  (obj: unknown, msg?: string, ...args: unknown[]): void;
+  (msg: string, ...args: unknown[]): void;
+}
+
+export interface ILogger {
+  trace?: LogFn;
+  debug: LogFn;
+  info: LogFn;
+  warn: LogFn;
+  error: LogFn;
+  fatal?: LogFn;
+}
+
 export interface Osm2pgsqlConfig {
   slim?: boolean;
   cache: number;
