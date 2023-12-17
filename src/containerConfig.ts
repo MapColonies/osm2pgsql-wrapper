@@ -42,16 +42,19 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     cleanupRegistry.on('itemCompleted', (id) => cleanupRegistryLogger.info({ msg: 'itemCompleted', itemId: id }));
     cleanupRegistry.on('finished', (status) => cleanupRegistryLogger.info({ msg: `finished cleanup`, status }));
 
-    cleanupRegistry.register({
-      func: async () => {
-        return new Promise((resolve) => {
-          terminateChildren();
-          return resolve(undefined);
-        });
-      },
-      id: 'terminateChildren',
-    });
-    cleanupRegistry.register({ func: tracing.stop.bind(tracing), id: SERVICES.TRACER.toString() });
+    if (!cleanupRegistry.hasAlreadyTriggered) {
+      cleanupRegistry.register({
+        func: async () => {
+          return new Promise((resolve) => {
+            terminateChildren();
+            return resolve(undefined);
+          });
+        },
+        id: 'terminateChildren',
+      });
+
+      cleanupRegistry.register({ func: tracing.stop.bind(tracing), id: SERVICES.TRACER.toString() });
+    }
 
     const tracer = trace.getTracer(CLI_NAME);
 
@@ -71,7 +74,11 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       {
         token: ON_SIGNAL,
         provider: {
-          useValue: cleanupRegistry.trigger.bind(cleanupRegistry),
+          useValue: async (): Promise<void> => {
+            if (!cleanupRegistry.hasAlreadyTriggered) {
+              await cleanupRegistry.trigger();
+            }
+          },
         },
       },
       { token: EXIT_CODE, provider: { useValue: ExitCodes.GENERAL_ERROR } },

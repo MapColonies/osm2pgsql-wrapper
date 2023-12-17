@@ -15,7 +15,9 @@ data:
   S3_ACL: {{ .Values.s3.acl | quote }}
   CONFIG: {{ printf "%s/%s" .Values.cli.append.config.mountPath .Values.cli.append.config.fileName | quote }}
   REPLICATION_URL: {{ .Values.cli.append.replicationUrl | quote }}
-  UPLOAD_TARGETS: {{ .Values.cli.append.uploadTargets | quote }}
+  {{- if .Values.cli.append.uploadTargets.enabled }}
+  UPLOAD_TARGETS: {{ .Values.cli.append.uploadTargets.value | quote }}
+  {{- end }}
   NAME: {{ .Values.cli.append.queue.name | quote }}
   {{- if .Values.deployment.enabled }}
   FOREVER: 'true'

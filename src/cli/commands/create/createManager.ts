@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { inject } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
-import { DATA_DIR, DEFAULT_DUMP_NAME, PROJECT_CREATION_SEQUENCE_NUMBER, SERVICES } from '../../../common/constants';
+import { DATA_DIR, DEFAULT_DUMP_NAME, DEFAULT_PROJECT_CREATION_STATE, SERVICES } from '../../../common/constants';
 import { streamToFs } from '../../../common/util';
 import { DumpClient, DumpMetadataResponse } from '../../../httpClient/dumpClient';
 import { DumpServerEmptyResponseError } from '../../../common/errors';
@@ -38,20 +38,20 @@ export class CreateManager {
     await this.osmCommandRunner.create(localScriptPath, dump.localPath);
   }
 
-  public async loadDump(dumpSource: string, dumpSourceType: DumpSourceType): Promise<LocalDump> {
+  public async loadDump(dumpSource: string, dumpSourceType: DumpSourceType, stateValueOverride?: number): Promise<LocalDump> {
     let path: string;
     let metadata: DumpMetadataResponse;
 
     switch (dumpSourceType) {
       case DumpSourceType.LOCAL_FILE:
-        return { localPath: dumpSource, sequenceNumber: PROJECT_CREATION_SEQUENCE_NUMBER };
+        return { localPath: dumpSource, sequenceNumber: stateValueOverride ?? DEFAULT_PROJECT_CREATION_STATE };
       case DumpSourceType.REMOTE_URL:
         path = await this.getDumpFromRemoteToFs(dumpSource);
-        return { localPath: path, sequenceNumber: PROJECT_CREATION_SEQUENCE_NUMBER };
+        return { localPath: path, sequenceNumber: stateValueOverride ?? DEFAULT_PROJECT_CREATION_STATE };
       case DumpSourceType.DUMP_SERVER:
         metadata = await this.getLatestFromDumpServer(dumpSource);
         path = await this.getDumpFromRemoteToFs(metadata.url);
-        return { localPath: path, sequenceNumber: metadata.sequenceNumber ?? PROJECT_CREATION_SEQUENCE_NUMBER };
+        return { localPath: path, sequenceNumber: stateValueOverride ?? metadata.sequenceNumber ?? DEFAULT_PROJECT_CREATION_STATE };
     }
   }
 

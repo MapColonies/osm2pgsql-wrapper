@@ -37,15 +37,17 @@ export const s3RegistrationMiddlewareFactory: RegisterOnContainerMiddlewareFacto
         postInjectionSyncHook: (container): void => {
           const s3Client = container.resolve<S3Client>(SERVICES.S3);
           const cleanupRegistry = container.resolve<CleanupRegistry>(SERVICES.CLEANUP_REGISTRY);
-          cleanupRegistry.register({
-            func: async () => {
-              return new Promise((resolve) => {
-                s3Client.destroy();
-                return resolve(undefined);
-              });
-            },
-            id: SERVICES.S3.toString(),
-          });
+          if (!cleanupRegistry.hasAlreadyTriggered) {
+            cleanupRegistry.register({
+              func: async () => {
+                return new Promise((resolve) => {
+                  s3Client.destroy();
+                  return resolve(undefined);
+                });
+              },
+              id: SERVICES.S3.toString(),
+            });
+          }
         },
       },
     ]);
@@ -80,7 +82,9 @@ export const uploadTargetsRegistrationMiddlewareFactory: RegisterOnContainerMidd
             postInjectionSyncHook: (container): void => {
               const queueProv = container.resolve<QueueProvider>(QUEUE_PROVIDER_SYMBOL);
               const cleanupRegistry = container.resolve<CleanupRegistry>(SERVICES.CLEANUP_REGISTRY);
-              cleanupRegistry.register({ func: queueProv.stopQueue.bind(queueProv), id: QUEUE_PROVIDER_SYMBOL.toString() });
+              if (!cleanupRegistry.hasAlreadyTriggered) {
+                cleanupRegistry.register({ func: queueProv.stopQueue.bind(queueProv), id: QUEUE_PROVIDER_SYMBOL.toString() });
+              }
             },
           },
         ]);

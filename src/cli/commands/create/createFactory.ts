@@ -16,6 +16,7 @@ export interface CreateArguments extends GlobalArguments {
   dumpSourceType: DumpSourceType;
   dumpSource: string;
   s3LuaScriptKey: string;
+  stateOverride?: number;
 }
 
 export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments, CreateArguments>> = (dependencyContainer) => {
@@ -36,6 +37,12 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         demandOption: true,
       })
+      .option('stateOverride', {
+        alias: ['o', 'state-override'],
+        description: 'Creation dump state to be set',
+        nargs: 1,
+        type: 'number',
+      })
       .option('s3LuaScriptKey', {
         alias: ['l', 's3-lua-script-key'],
         describe: 'The lua script key in s3',
@@ -51,7 +58,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     const { pguser, pgpassword, awsSecretAccessKey, awsAccessKeyId, ...restOfArgs } = args;
     logger.debug({ msg: 'starting wrapper command execution', command, args: restOfArgs });
 
-    const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType } = args;
+    const { s3ProjectId, s3LuaScriptKey, dumpSource, dumpSourceType, stateOverride } = args;
 
     const arstotzkaConfig = dependencyContainer.resolve<ArstotzkaConfig>(SERVICES.ARSTOTZKA);
     let mediator: StatefulMediator | undefined;
@@ -64,7 +71,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     try {
       await mediator?.reserveAccess();
 
-      const localDump = await manager.loadDump(dumpSource, dumpSourceType);
+      const localDump = await manager.loadDump(dumpSource, dumpSourceType, stateOverride);
 
       await mediator?.createAction({
         state: localDump.sequenceNumber,
