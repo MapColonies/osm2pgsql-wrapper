@@ -59,6 +59,9 @@ env:
     enabled: false
     url: http://localhost:55681/v1/trace
     ratio: 1
+  metrics:
+    enabled: false
+    url: http://localhost:55681/v1/metrics
   httpClient:
     timeout: 1000
   osm2pgsql:
