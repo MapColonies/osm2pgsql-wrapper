@@ -1,11 +1,12 @@
 import config from 'config';
 import { getOtelMixin } from '@map-colonies/telemetry';
 import { trace } from '@opentelemetry/api';
-import { DependencyContainer } from 'tsyringe';
+import { DependencyContainer, instancePerContainerCachingFactory } from 'tsyringe';
 import jsLogger, { LoggerOptions } from '@map-colonies/js-logger';
 import { CleanupRegistry } from '@map-colonies/cleanup-registry';
 import axios from 'axios';
-import { SERVICES, CLI_NAME, CLI_BUILDER, EXIT_CODE, ExitCodes, ON_SIGNAL } from './common/constants';
+import client from 'prom-client';
+import { SERVICES, CLI_NAME, CLI_BUILDER, EXIT_CODE, ExitCodes, ON_SIGNAL, METRICS_BUCKETS, LIVENESS_PROBE_FACTORY } from './common/constants';
 import { tracing } from './common/tracing';
 import { InjectionObject, registerDependencies } from './common/dependencyRegistration';
 import { cliBuilderFactory } from './cli/cliBuilderFactory';
@@ -16,8 +17,9 @@ import { ConfigStore } from './common/configStore';
 import { CREATE_COMMAND_FACTORY, CREATE_MANAGER_FACTORY } from './cli/commands/create/constants';
 import { createManagerFactory } from './cli/commands/create/createManagerFactory';
 import { createCommandFactory } from './cli/commands/create/createFactory';
-import { ArstotzkaConfig } from './common/interfaces';
+import { ArstotzkaConfig, IConfig } from './common/interfaces';
 import { terminateChildren } from './commandRunner/spawner';
+import { livenessProbeFactory } from './common/liveness';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -36,6 +38,8 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
 
     const httpClientConfig = config.get<object>('httpClient');
     const axiosClient = axios.create(httpClientConfig);
+
+    const tracer = trace.getTracer(CLI_NAME);
 
     const cleanupRegistryLogger = logger.child({ component: 'cleanupRegistry' });
     cleanupRegistry.on('itemFailed', (id, error, msg) => cleanupRegistryLogger.error({ msg, itemId: id, err: error }));
@@ -56,8 +60,6 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       cleanupRegistry.register({ func: tracing.stop.bind(tracing), id: SERVICES.TRACER.toString() });
     }
 
-    const tracer = trace.getTracer(CLI_NAME);
-
     const dependencies: InjectionObject<unknown>[] = [
       { token: SERVICES.LOGGER, provider: { useValue: logger } },
       { token: SERVICES.CONFIG, provider: { useValue: config } },
@@ -69,6 +71,19 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       { token: APPEND_COMMAND_FACTORY, provider: { useFactory: appendCommandFactory } },
       { token: APPEND_MANAGER_FACTORY, provider: { useFactory: appendManagerFactory } },
       { token: SERVICES.TRACER, provider: { useValue: tracer } },
+      {
+        token: SERVICES.METRICS_REGISTRY,
+        provider: {
+          useFactory: instancePerContainerCachingFactory((container) => {
+            const config = container.resolve<IConfig>(SERVICES.CONFIG);
+            if (config.get<boolean>('telemetry.metrics.enabled')) {
+              return client.register;
+            }
+          }),
+        },
+      },
+      { token: METRICS_BUCKETS, provider: { useValue: config.get('telemetry.metrics.buckets') } },
+      { token: LIVENESS_PROBE_FACTORY, provider: { useFactory: livenessProbeFactory } },
       { token: SERVICES.HTTP_CLIENT, provider: { useValue: axiosClient } },
       { token: SERVICES.ARSTOTZKA, provider: { useValue: arstotzkaConfig } },
       {

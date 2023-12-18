@@ -1,7 +1,8 @@
 import { join } from 'path';
 import { inject } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
-import { DATA_DIR, DEFAULT_DUMP_NAME, DEFAULT_PROJECT_CREATION_STATE, SERVICES } from '../../../common/constants';
+import client from 'prom-client';
+import { DATA_DIR, DEFAULT_DUMP_NAME, DEFAULT_PROJECT_CREATION_STATE, METRICS_BUCKETS, SERVICES } from '../../../common/constants';
 import { streamToFs } from '../../../common/util';
 import { DumpClient, DumpMetadataResponse } from '../../../httpClient/dumpClient';
 import { DumpServerEmptyResponseError } from '../../../common/errors';
@@ -15,12 +16,26 @@ interface LocalDump {
 }
 
 export class CreateManager {
+  private readonly createDurationHistogram?: client.Histogram<'project' | 'script'>;
+
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     private readonly dumpClient: DumpClient,
     private readonly osmCommandRunner: OsmCommandRunner,
-    private readonly remoteResourceManager: RemoteResourceManager
-  ) {}
+    private readonly remoteResourceManager: RemoteResourceManager,
+    @inject(SERVICES.METRICS_REGISTRY) registry?: client.Registry,
+    @inject(METRICS_BUCKETS) metricsBuckets?: number[]
+  ) {
+    if (registry !== undefined) {
+      this.createDurationHistogram = new client.Histogram({
+        name: 'osm2pgsql_wrapper_create_duration_seconds',
+        help: 'osm2pgsql-wrapper create duration in seconds',
+        buckets: metricsBuckets,
+        labelNames: ['project', 'script'] as const,
+        registers: [registry],
+      });
+    }
+  }
 
   public async create(projectId: string, luaScriptKey: string, dump: LocalDump): Promise<void> {
     this.logger.info({ msg: 'creating project', projectId, dump, luaScriptKey });
@@ -35,7 +50,13 @@ export class CreateManager {
 
     this.logger.info({ msg: 'attempting to osm2pg create', projectId, luaScriptKey });
 
+    const createTimerEnd = this.createDurationHistogram?.startTimer({ project: projectId, script: luaScriptKey });
+
     await this.osmCommandRunner.create(localScriptPath, dump.localPath);
+
+    if (createTimerEnd) {
+      createTimerEnd();
+    }
   }
 
   public async loadDump(dumpSource: string, dumpSourceType: DumpSourceType, stateValueOverride?: number): Promise<LocalDump> {

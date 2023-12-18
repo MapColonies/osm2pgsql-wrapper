@@ -6,6 +6,10 @@ export interface IConfig {
   has: (setting: string) => boolean;
 }
 
+export interface IServerConfig {
+  port: string;
+}
+
 export interface LogFn {
   (obj: unknown, msg?: string, ...args: unknown[]): void;
   (msg: string, ...args: unknown[]): void;

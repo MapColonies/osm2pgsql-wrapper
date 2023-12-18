@@ -7,8 +7,9 @@ import { Logger } from '@map-colonies/js-logger';
 import { BoundingBox } from '@map-colonies/tile-calc';
 import { StatefulMediator } from '@map-colonies/arstotzka-mediator';
 import { ActionStatus } from '@map-colonies/arstotzka-common';
+import client from 'prom-client';
 import { IConfig, RemoteResource } from '../../../common/interfaces';
-import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST } from '../../../common/constants';
+import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST, METRICS_BUCKETS } from '../../../common/constants';
 import { streamToUniqueLines, getDiffDirPathComponents, streamToFs, valuesToRange } from '../../../common/util';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { AppendEntity } from '../../../validation/schemas';
@@ -31,6 +32,11 @@ export class AppendManager {
   private uploadTargets: ExpireTilesUploadTarget[] = [];
   private readonly shouldGenerateExpireOutput: boolean;
   private readonly queueSettings?: QueueSettings;
+  private readonly appendDurationHistogram?: client.Histogram<'project' | 'script'>;
+  private readonly appendsCounter?: client.Counter<'status'>;
+  private readonly expireTilesUploadDurationHistogram?: client.Histogram<'target'>;
+  private readonly expireTilesAttemptedUploadsCounter?: client.Counter<'target' | 'status'>;
+  private readonly tilesCounter?: client.Counter<'kind'>;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
@@ -41,11 +47,51 @@ export class AppendManager {
     private readonly osmCommandRunner: OsmCommandRunner,
     configStore: IConfig,
     private readonly remoteResourceManager: RemoteResourceManager,
-    private readonly queueProvider?: QueueProvider
+    private readonly queueProvider?: QueueProvider,
+    @inject(SERVICES.METRICS_REGISTRY) registry?: client.Registry,
+    @inject(METRICS_BUCKETS) metricsBuckets?: number[]
   ) {
     this.shouldGenerateExpireOutput = config.get<boolean>('osm2pgsql.generateExpireOutput');
     if (configStore.has('queue')) {
       this.queueSettings = configStore.get<QueueSettings>('queue');
+    }
+    if (registry !== undefined) {
+      this.appendDurationHistogram = new client.Histogram({
+        name: 'osm2pgsql_wrapper_append_duration_seconds',
+        help: 'osm2pgsql-wrapper append duration in seconds',
+        buckets: metricsBuckets,
+        labelNames: ['project', 'script'] as const,
+        registers: [registry],
+      });
+
+      this.appendsCounter = new client.Counter({
+        name: 'osm2pgsql_wrapper_appends_count',
+        help: 'The total number of state appends for all the projects configured, labeled by status',
+        labelNames: ['status'] as const,
+        registers: [registry],
+      });
+
+      this.expireTilesUploadDurationHistogram = new client.Histogram({
+        name: 'osm2pgsql_wrapper_expire_tiles_uploads_duration_seconds',
+        help: 'osm2pgsql-wrapper append duration in seconds',
+        buckets: metricsBuckets,
+        labelNames: ['target'] as const,
+        registers: [registry],
+      });
+
+      this.expireTilesAttemptedUploadsCounter = new client.Counter({
+        name: 'osm2pgsql_wrapper_expire_tiles_attempted_uploads_counter',
+        help: 'The total number of expired-tiles uploads per target and status (completed, empty, filtered)',
+        labelNames: ['target', 'status'] as const,
+        registers: [registry],
+      });
+
+      this.tilesCounter = new client.Counter({
+        name: 'osm2pgsql_wrapper_tiles_counter',
+        help: 'The total number of tiles by status (generated_expire_list, requested_bbox_items)',
+        labelNames: ['kind'] as const,
+        registers: [registry],
+      });
     }
   }
 
@@ -136,7 +182,7 @@ export class AppendManager {
 
       if (this.stateTracker.isUpToDate()) {
         this.logger.info({
-          msg: 'State is up to date',
+          msg: 'state is up to date',
           state: this.stateTracker.current,
           projectId: this.stateTracker.projectId,
         });
@@ -161,9 +207,12 @@ export class AppendManager {
         }
 
         await this.stateTracker.updateRemoteState();
+
+        this.appendsCounter?.inc({ status: 'completed' });
       } catch (error) {
         terminateChildren();
         await mediator?.updateAction({ status: ActionStatus.FAILED, metadata: { error } });
+        this.appendsCounter?.inc({ status: 'failed' });
         await setTimeoutPromise(waitTimeSeconds * MILLISECONDS_IN_SECOND);
         continue;
       }
@@ -251,7 +300,13 @@ export class AppendManager {
 
     this.logger.info({ msg: 'attempting to osm2pg append', entityId: entity.id, expireTilesZoom, projectId: this.stateTracker.projectId });
 
+    const appendTimerEnd = this.appendDurationHistogram?.startTimer({ project: entity.id, script: entity.script });
+
     await this.osmCommandRunner.append([...appendArgs, diffPath]);
+
+    if (appendTimerEnd) {
+      appendTimerEnd();
+    }
   }
 
   private async uploadExpired(): Promise<void> {
@@ -269,11 +324,25 @@ export class AppendManager {
           state: this.stateTracker.nextState,
           localExpireTilesListPath,
         });
+        this.uploadTargets.forEach((target) => this.expireTilesAttemptedUploadsCounter?.inc({ target, status: 'empty' }));
         return Promise.resolve();
       }
 
       const expireListStream = fs.createReadStream(localExpireTilesListPath);
       const expireList = await streamToUniqueLines(expireListStream);
+
+      if (expireList.length === 0) {
+        this.logger.warn({
+          msg: 'no expired tiles list was generated, skipping upload',
+          entityId: entity.id,
+          projectId: this.stateTracker.projectId,
+          state: this.stateTracker.nextState,
+          localExpireTilesListPath,
+        });
+        this.uploadTargets.forEach((target) => this.expireTilesAttemptedUploadsCounter?.inc({ target, status: 'empty' }));
+        return Promise.resolve();
+      }
+
       this.logger.debug({
         msg: 'uploading expired tiles',
         projectId: this.stateTracker.projectId,
@@ -283,11 +352,17 @@ export class AppendManager {
       });
 
       for await (const target of this.uploadTargets) {
+        const uploadTimerEnd = this.expireTilesUploadDurationHistogram?.startTimer({ target });
+
         if (target === 's3') {
           await this.uploadExpiredListToS3(localExpireTilesListPath, entity.id);
         }
         if (target === 'queue') {
           await this.pushExpiredTilesToQueue(expireList, entity.geometryKey);
+        }
+
+        if (uploadTimerEnd) {
+          uploadTimerEnd();
         }
       }
 
@@ -313,14 +388,11 @@ export class AppendManager {
     const expireListKey = join(this.stateTracker.projectId, entityId, this.stateTracker.nextState.toString(), EXPIRE_LIST);
 
     await this.s3Client.putObjectWrapper(expireListKey, expireTilesListBuffer);
+
+    this.expireTilesAttemptedUploadsCounter?.inc({ target: 's3', status: 'completed' });
   }
 
   private async pushExpiredTilesToQueue(expireList: string[], geometryKey?: string): Promise<void> {
-    if (expireList.length === 0) {
-      this.logger.info({ msg: 'no expire tiles to push to queue', reason: 'generated expire list is empty' });
-      return;
-    }
-
     const expiredTilesBbox = this.buildFilteredExpiredTilesBbox(expireList, geometryKey);
 
     if (expiredTilesBbox.length === 0) {
@@ -328,6 +400,7 @@ export class AppendManager {
         msg: 'no expire tiles to push to queue',
         reason: 'all tiles were filtered',
       });
+      this.expireTilesAttemptedUploadsCounter?.inc({ target: 'queue', status: 'filtered' });
       return;
     }
 
@@ -340,6 +413,8 @@ export class AppendManager {
     };
 
     await this.pushPayloadToQueue(payload);
+
+    this.expireTilesAttemptedUploadsCounter?.inc({ target: 'queue', status: 'completed' });
   }
 
   private buildFilteredExpiredTilesBbox(expireList: string[], geometryId?: string): BoundingBox[] {
@@ -361,6 +436,9 @@ export class AppendManager {
       preTilesCount: expireList.length,
       postTilesCount: bbox.length,
     });
+
+    this.tilesCounter?.inc({ kind: 'generated_expire_list' }, expireList.length);
+    this.tilesCounter?.inc({ kind: 'requested_bbox_items' }, bbox.length);
 
     return bbox;
   }
