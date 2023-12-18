@@ -88,8 +88,12 @@ export class OsmCommandRunner {
     osm2pgsqlArgs.push(`--output=${osm2pgsqlConfig.output}`);
     osm2pgsqlArgs.push(`--log-level=${osm2pgsqlConfig.logger.level}`);
     osm2pgsqlArgs.push(`--log-progress=${osm2pgsqlConfig.logger.progress ? 'true' : 'false'}`);
-    osm2pgsqlArgs.push(`--schema=${osm2pgsqlConfig.schema}`);
-    osm2pgsqlArgs.push(`--middle-schema=${osm2pgsqlConfig.middleSchema}`);
+    if (osm2pgsqlConfig.schema !== undefined) {
+      osm2pgsqlArgs.push(`--schema=${osm2pgsqlConfig.schema}`);
+    }
+    if (osm2pgsqlConfig.middleSchema !== undefined) {
+      osm2pgsqlArgs.push(`--middle-schema=${osm2pgsqlConfig.middleSchema}`);
+    }
     if (osm2pgsqlConfig.logger.sql) {
       osm2pgsqlArgs.push('--log-sql');
     }

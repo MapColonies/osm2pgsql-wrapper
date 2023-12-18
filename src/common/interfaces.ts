@@ -26,8 +26,8 @@ export interface Osm2pgsqlConfig {
   processes: number;
   output: OutputType;
   expireOutput: boolean;
-  schema: string;
-  middleSchema: string;
+  schema?: string;
+  middleSchema?: string;
   logger: {
     level: LogLevel;
     progress: boolean;
