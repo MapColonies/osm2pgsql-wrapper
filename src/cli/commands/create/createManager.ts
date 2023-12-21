@@ -40,6 +40,8 @@ export class CreateManager {
   public async create(projectId: string, luaScriptKey: string, dump: LocalDump): Promise<void> {
     this.logger.info({ msg: 'creating project', projectId, dump, luaScriptKey });
 
+    this.createDurationHistogram?.zero({ project: projectId, script: luaScriptKey });
+
     const scriptKey = join(projectId, luaScriptKey);
 
     this.logger.info({ msg: 'getting script from remote to file system', projectId, scriptKey });

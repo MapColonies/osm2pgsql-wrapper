@@ -108,6 +108,8 @@ export class AppendManager {
       if (entity.geometryKey !== undefined) {
         resources.push({ id: entity.geometryKey, type: 'geometry' });
       }
+
+      this.appendDurationHistogram?.zero({ project: entity.id, script: entity.script });
     });
 
     await this.remoteResourceManager.load(resources);

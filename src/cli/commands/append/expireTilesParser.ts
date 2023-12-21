@@ -90,6 +90,7 @@ export class ExpireTilesParser {
       const currentX = parseInt(elements[1]);
       const currentY = parseInt(elements[2]);
 
+      // convert to 4326 (WGS84)
       const [west, south, east, north] = sphericalMercatorUtil.bbox(currentX, currentY, currentZ);
       const bbox = { west, south, east, north };
 
