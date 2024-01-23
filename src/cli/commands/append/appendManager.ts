@@ -146,6 +146,8 @@ export class AppendManager {
     try {
       await this.appendNextState(replicationUrl);
 
+      await this.stateTracker.updateRemoteTimestamp();
+
       if (this.shouldGenerateExpireOutput) {
         await this.uploadExpired();
       }
@@ -203,6 +205,8 @@ export class AppendManager {
 
       try {
         await this.appendNextState(replicationUrl);
+
+        await this.stateTracker.updateRemoteTimestamp();
 
         if (this.shouldGenerateExpireOutput) {
           await this.uploadExpired();
@@ -351,6 +355,7 @@ export class AppendManager {
         entityId: entity.id,
         localExpireTilesListPath,
         expireListCount: expireList.length,
+        state: this.stateTracker.nextState,
       });
 
       for await (const target of this.uploadTargets) {
@@ -412,6 +417,7 @@ export class AppendManager {
     const payload: TileRequestQueuePayload = {
       items: expiredTilesBbox.map((bbox) => ({ area: bbox, minZoom, maxZoom })),
       source: 'expiredTiles',
+      state: this.stateTracker.nextState,
     };
 
     await this.pushPayloadToQueue(payload);
