@@ -7,7 +7,14 @@
     "tracing": {
       "enabled": false,
       "url": "http://localhost:4318/v1/trace"
+    },
+    "metrics": {
+      "enabled": false,
+      "buckets": [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 50, 250, 500]
     }
+  },
+  "server": {
+    "port": "8080"
   },
   "httpClient": {
     "timeout": 1000
@@ -18,8 +25,6 @@
     "processes": 2,
     "output": "flex",
     "generateExpireOutput": true,
-    "schema": "public",
-    "middleSchema": "public",
     "logger": {
       "level": "info",
       "progress": true,

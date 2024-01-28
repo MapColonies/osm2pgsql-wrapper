@@ -2,8 +2,9 @@ import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '../common/constants';
 import { Osm2pgsqlError, OsmiumError } from '../common/errors';
-import { IConfig, Osm2pgsqlConfig, OsmiumConfig } from '../common/interfaces';
-import { CommandRunner } from './commandRunner';
+import { LogLevel } from '../common/types';
+import { IConfig, ILogger, Osm2pgsqlConfig, OsmiumConfig } from '../common/interfaces';
+import { spawnChild } from './spawner';
 
 type Executable = 'osm2pgsql' | 'osmium';
 
@@ -11,43 +12,67 @@ type Executable = 'osm2pgsql' | 'osmium';
 export class OsmCommandRunner {
   private readonly globalCommandArgs: Record<Executable, string[]> = { osm2pgsql: [], osmium: [] };
 
-  public constructor(
-    @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(SERVICES.CONFIG) config: IConfig,
-    private readonly commandRunner: CommandRunner
-  ) {
+  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
     this.processConfig(config);
   }
 
   public async append(args: string[]): Promise<void> {
     const executable: Executable = 'osm2pgsql';
     const command = '--append';
+    const globalArgs = this.globalCommandArgs[executable];
+    const finalArgs = [...globalArgs, ...args];
+    const isVerbose = this.config.get<LogLevel>('osm2pgsql.logger.level') === 'debug';
 
-    await this.commandWrapper(executable, command, args, Osm2pgsqlError);
+    await this.commandWrapper(executable, finalArgs, Osm2pgsqlError, command, undefined, isVerbose);
   }
 
-  public async create(args: string[]): Promise<void> {
+  public async create(stylePath: string, dumpPath: string): Promise<void> {
     const executable: Executable = 'osm2pgsql';
     const command = '--create';
+    const globalArgs = this.globalCommandArgs[executable];
+    const args = [...globalArgs, `--style=${stylePath}`, dumpPath];
+    const isVerbose = this.config.get<LogLevel>('osm2pgsql.logger.level') === 'debug';
 
-    await this.commandWrapper(executable, command, args, Osm2pgsqlError);
+    await this.commandWrapper(executable, args, Osm2pgsqlError, command, undefined, isVerbose);
   }
 
-  public async mergeChanges(args: string[]): Promise<void> {
+  public async mergeChanges(input: string, output: string): Promise<void> {
     const executable: Executable = 'osmium';
     const command = 'merge-changes';
+    const globalArgs = this.globalCommandArgs[executable];
+    const args = [...globalArgs, `${input}`, `--output=${output}`, `--overwrite`];
+    const isVerbose = this.config.get<boolean>('osmium.verbose');
 
-    await this.commandWrapper(executable, command, args, OsmiumError);
+    await this.commandWrapper(executable, args, OsmiumError, command, undefined, isVerbose);
   }
 
-  private async commandWrapper(executable: Executable, command: string, args: string[], error: new (message?: string) => Error): Promise<void> {
-    this.logger.info({ msg: 'executing osm command', executable, command, args });
+  private async commandWrapper(
+    executable: Executable,
+    args: string[],
+    error: new (message?: string) => Error = Error,
+    command?: string,
+    cwd?: string,
+    verbose?: boolean
+  ): Promise<string> {
+    this.logger.info({ msg: 'executing command', executable, command, args, cwd });
 
-    const { exitCode } = await this.commandRunner.run(executable, command, [...this.globalCommandArgs[executable], ...args]);
+    let childLogger: ILogger | undefined;
+    if (verbose === true) {
+      childLogger = this.logger.child({ executable, command, args }, { level: 'debug' });
+    }
 
-    if (exitCode !== 0) {
-      this.logger.error({ msg: 'failure occurred during the execute of osm command', executable, command, args, executableExitCode: exitCode });
-      throw new error(`an error occurred while running ${executable} with ${command} command, exit code ${exitCode as number}`);
+    try {
+      const { exitCode, stderr, stdout } = await spawnChild(executable, args, command, cwd, undefined, childLogger);
+
+      if (exitCode !== 0) {
+        this.logger.error({ msg: 'failure occurred during the execute of command', executable, command, args, executableExitCode: exitCode, stderr });
+        throw new error(`an error occurred while running ${executable} with ${command ?? 'undefined'} command, exit code ${exitCode}`);
+      }
+
+      return stdout;
+    } catch (err) {
+      this.logger.error({ msg: 'failure occurred during the execute of command', executable, command, args, err });
+      throw new error(`an error occurred while running ${executable} with ${command ?? 'undefined'} command, exit code`);
     }
   }
 
@@ -63,8 +88,12 @@ export class OsmCommandRunner {
     osm2pgsqlArgs.push(`--output=${osm2pgsqlConfig.output}`);
     osm2pgsqlArgs.push(`--log-level=${osm2pgsqlConfig.logger.level}`);
     osm2pgsqlArgs.push(`--log-progress=${osm2pgsqlConfig.logger.progress ? 'true' : 'false'}`);
-    osm2pgsqlArgs.push(`--schema=${osm2pgsqlConfig.schema}`);
-    osm2pgsqlArgs.push(`--middle-schema=${osm2pgsqlConfig.middleSchema}`);
+    if (osm2pgsqlConfig.schema !== undefined) {
+      osm2pgsqlArgs.push(`--schema=${osm2pgsqlConfig.schema}`);
+    }
+    if (osm2pgsqlConfig.middleSchema !== undefined) {
+      osm2pgsqlArgs.push(`--middle-schema=${osm2pgsqlConfig.middleSchema}`);
+    }
     if (osm2pgsqlConfig.logger.sql) {
       osm2pgsqlArgs.push('--log-sql');
     }

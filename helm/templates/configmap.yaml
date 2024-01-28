@@ -1,6 +1,7 @@
 {{- $releaseName := .Release.Name -}}
 {{- $chartName := include "osm2pgsql-wrapper.name" . -}}
 {{- $tracingUrl := include "osm2pgsql-wrapper.tracingUrl" . -}}
+{{- $metricsUrl := include "osm2pgsql-wrapper.metricsUrl" . -}}
 {{- if .Values.enabled -}}
 apiVersion: v1
 kind: ConfigMap
@@ -23,13 +24,17 @@ data:
   TELEMETRY_TRACING_URL: {{ $tracingUrl }}
   TELEMETRY_TRACING_RATIO: {{ .Values.env.tracing.ratio | quote }}
   {{- end }}
+  {{ if .Values.env.metrics.enabled }}
+  TELEMETRY_METRICS_ENABLED: 'true'
+  TELEMETRY_METRICS_URL: {{ $metricsUrl }}
+  {{ end }}
   HTTP_CLIENT_TIMEOUT: {{ .Values.env.httpClient.timeout | quote }}
   OSM2PGSQL_SLIM: {{ .Values.env.osm2pgsql.slim | quote}}
   OSM2PGSQL_CACHE: {{ .Values.env.osm2pgsql.cache | quote }}
   OSM2PGSQL_PROCESSES: {{ .Values.env.osm2pgsql.processes | quote }}
   OSM2PGSQL_OUTPUT: {{ .Values.env.osm2pgsql.output | quote }}
   OSM2PGSQL_GENERATE_EXPIRE_OUTPUT: {{ .Values.env.osm2pgsql.generateExpireOutput | quote }}
-  OSM2PGSQL_LOG_LEVEL: {{ .Values.env.osm2pgsql.log.Level | quote }}
+  OSM2PGSQL_LOG_LEVEL: {{ .Values.env.osm2pgsql.log.level | quote }}
   OSM2PGSQL_LOG_PROGRESS: {{ .Values.env.osm2pgsql.log.progress | quote }}
   OSM2PGSQL_LOG_SQL: {{ .Values.env.osm2pgsql.log.sql | quote }}
   OSM2PGSQL_LOG_SQL_DATA: {{ .Values.env.osm2pgsql.log.sqlData | quote }}

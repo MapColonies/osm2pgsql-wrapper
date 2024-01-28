@@ -1,7 +1,8 @@
 import { Logger } from '@map-colonies/js-logger';
+import { Registry } from 'prom-client';
 import { FactoryFunction } from 'tsyringe';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
-import { SERVICES } from '../../../common/constants';
+import { SERVICES, METRICS_BUCKETS } from '../../../common/constants';
 import { IConfig } from '../../../common/interfaces';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
 import { S3RemoteResourceProvider } from '../../../remoteResource/s3ResourceProvider';
@@ -24,6 +25,9 @@ export const appendManagerFactory: FactoryFunction<AppendManager> = (dependencyC
   const queueProv = dependencyContainer.isRegistered(QUEUE_PROVIDER_SYMBOL)
     ? dependencyContainer.resolve<QueueProvider>(QUEUE_PROVIDER_SYMBOL)
     : undefined;
+  const registry = dependencyContainer.resolve<Registry>(SERVICES.METRICS_REGISTRY);
+  const metricsBuckets = dependencyContainer.resolve<number[]>(METRICS_BUCKETS);
+
   return new AppendManager(
     logger,
     config,
@@ -33,6 +37,8 @@ export const appendManagerFactory: FactoryFunction<AppendManager> = (dependencyC
     osmCommandRunner,
     configStore,
     remoteResourceManager,
-    queueProv
+    queueProv,
+    registry,
+    metricsBuckets
   );
 };

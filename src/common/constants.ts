@@ -1,12 +1,16 @@
 import { readPackageJsonSync } from '@map-colonies/read-pkg';
 
 export const CLI_NAME = readPackageJsonSync().name ?? 'unknown_cli';
+export const DEFAULT_PORT = 8080;
 
 export const IGNORED_OUTGOING_TRACE_ROUTES = [/^.*\/v1\/metrics.*$/];
 export const IGNORED_INCOMING_TRACE_ROUTES = [/^.*\/docs.*$/];
 
 export const CLI_BUILDER = Symbol('cliBuilder');
 export const EXIT_CODE = Symbol('exitCode');
+export const ON_SIGNAL = Symbol('onSignal');
+export const LIVENESS_PROBE_FACTORY = Symbol('LivenessProbeFactory');
+export const METRICS_BUCKETS = Symbol('metrics_buckets');
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const SERVICES: Record<string, symbol> = {
@@ -18,6 +22,8 @@ export const SERVICES: Record<string, symbol> = {
   HTTP_CLIENT: Symbol('HttpClient'),
   CONFIG_STORE: Symbol('ConfigStore'),
   ARSTOTZKA: Symbol('Arstotzka'),
+  CLEANUP_REGISTRY: Symbol('CleanupRegistry'),
+  METRICS_REGISTRY: Symbol('MetricsRegistry'),
 };
 
 export const ExitCodes = {
@@ -44,7 +50,7 @@ export const DEFAULT_DUMP_NAME = 'dump.osm.pbf';
 export const EXPIRE_LIST = 'expire.list';
 export const DIFF_FILE_EXTENTION = 'osc.gz';
 export const DEFAULT_SEQUENCE_NUMBER = -1;
-export const PROJECT_CREATION_SEQUENCE_NUMBER = 1;
+export const DEFAULT_PROJECT_CREATION_STATE = 1;
 export const SEQUENCE_NUMBER = 'sequenceNumber';
 export const SEQUENCE_NUMBER_REGEX = /sequenceNumber=\d+/;
 export const SEQUENCE_NUMBER_PADDING_AMOUNT = 3;

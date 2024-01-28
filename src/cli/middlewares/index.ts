@@ -2,6 +2,7 @@ import { S3Client } from '@aws-sdk/client-s3';
 import PgBoss from 'pg-boss';
 import { DependencyContainer, Lifecycle } from 'tsyringe';
 import { Arguments, MiddlewareFunction } from 'yargs';
+import { CleanupRegistry } from '@map-colonies/cleanup-registry';
 import { GlobalArguments } from '../cliBuilderFactory';
 import { AppendArguments } from '../commands/append/interfaces';
 import { ConfigStore } from '../../common/configStore';
@@ -11,7 +12,6 @@ import { DbConfig, pgBossFactory } from '../../queue/pgBossFactory';
 import { QUEUE_PROVIDER_SYMBOL } from '../../queue/constants';
 import { PgBossQueueProvider } from '../../queue/pgBossQueueProvider';
 import { registerDependencies } from '../../common/dependencyRegistration';
-import { ShutdownHandler } from '../../common/shutdownHandler';
 import { QueueProvider } from '../../queue/queueProvider';
 
 type RegisterOnContainerMiddlewareFactory<T> = (container: DependencyContainer) => MiddlewareFunction<T>;
@@ -36,8 +36,18 @@ export const s3RegistrationMiddlewareFactory: RegisterOnContainerMiddlewareFacto
         options: undefined,
         postInjectionSyncHook: (container): void => {
           const s3Client = container.resolve<S3Client>(SERVICES.S3);
-          const shutdownHandler = container.resolve(ShutdownHandler);
-          shutdownHandler.addFunction(s3Client.destroy.bind(s3Client));
+          const cleanupRegistry = container.resolve<CleanupRegistry>(SERVICES.CLEANUP_REGISTRY);
+          if (!cleanupRegistry.hasAlreadyTriggered) {
+            cleanupRegistry.register({
+              func: async () => {
+                return new Promise((resolve) => {
+                  s3Client.destroy();
+                  return resolve(undefined);
+                });
+              },
+              id: SERVICES.S3.toString(),
+            });
+          }
         },
       },
     ]);
@@ -71,8 +81,10 @@ export const uploadTargetsRegistrationMiddlewareFactory: RegisterOnContainerMidd
             options: { lifecycle: Lifecycle.Singleton },
             postInjectionSyncHook: (container): void => {
               const queueProv = container.resolve<QueueProvider>(QUEUE_PROVIDER_SYMBOL);
-              const shutdownHandler = container.resolve(ShutdownHandler);
-              shutdownHandler.addFunction(queueProv.stopQueue.bind(queueProv));
+              const cleanupRegistry = container.resolve<CleanupRegistry>(SERVICES.CLEANUP_REGISTRY);
+              if (!cleanupRegistry.hasAlreadyTriggered) {
+                cleanupRegistry.register({ func: queueProv.stopQueue.bind(queueProv), id: QUEUE_PROVIDER_SYMBOL.toString() });
+              }
             },
           },
         ]);

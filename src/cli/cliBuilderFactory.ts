@@ -1,6 +1,8 @@
 import yargs from 'yargs/yargs';
 import { Argv, CommandModule } from 'yargs';
+import { Logger } from '@map-colonies/js-logger';
 import { FactoryFunction } from 'tsyringe';
+import { SERVICES } from '../common/constants';
 import { CREATE_COMMAND_FACTORY } from './commands/create/constants';
 import { APPEND_COMMAND_FACTORY } from './commands/append/constants';
 import { s3RegistrationMiddlewareFactory } from './middlewares';
@@ -32,7 +34,14 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
       demandOption: true,
     })
     .help('h')
-    .alias('h', 'help');
+    .alias('h', 'help')
+    .fail((msg, err) => {
+      const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
+
+      logger.error({ err, msg: 'an error occurred while executing command', yargsMsg: msg });
+
+      throw err;
+    });
 
   args.middleware(s3RegistrationMiddlewareFactory(dependencyContainer));
 
