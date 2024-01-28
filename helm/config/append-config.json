@@ -1,7 +1,7 @@
 [
     {
         "id": "ways",
-        "script": "simple.lua",
+        "script": "simple4326.lua",
         "zoomLevel": {
             "min": 14,
             "max": 20

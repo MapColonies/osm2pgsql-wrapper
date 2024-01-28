@@ -1,7 +1,8 @@
 import { Logger } from '@map-colonies/js-logger';
+import { Registry } from 'prom-client';
 import { FactoryFunction } from 'tsyringe';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
-import { SERVICES } from '../../../common/constants';
+import { METRICS_BUCKETS, SERVICES } from '../../../common/constants';
 import { DumpClient } from '../../../httpClient/dumpClient';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
 import { S3RemoteResourceProvider } from '../../../remoteResource/s3ResourceProvider';
@@ -14,5 +15,7 @@ export const createManagerFactory: FactoryFunction<CreateManager> = (dependencyC
   const osmCommandRunner = dependencyContainer.resolve(OsmCommandRunner);
   const s3Client = dependencyContainer.resolve(S3ClientWrapper);
   const remoteResourceManager = new RemoteResourceManager(logger, new S3RemoteResourceProvider(s3Client));
-  return new CreateManager(logger, dumpClient, osmCommandRunner, remoteResourceManager);
+  const registry = dependencyContainer.resolve<Registry>(SERVICES.METRICS_REGISTRY);
+  const metricsBuckets = dependencyContainer.resolve<number[]>(METRICS_BUCKETS);
+  return new CreateManager(logger, dumpClient, osmCommandRunner, remoteResourceManager, registry, metricsBuckets);
 };

@@ -6,14 +6,32 @@ export interface IConfig {
   has: (setting: string) => boolean;
 }
 
+export interface IServerConfig {
+  port: string;
+}
+
+export interface LogFn {
+  (obj: unknown, msg?: string, ...args: unknown[]): void;
+  (msg: string, ...args: unknown[]): void;
+}
+
+export interface ILogger {
+  trace?: LogFn;
+  debug: LogFn;
+  info: LogFn;
+  warn: LogFn;
+  error: LogFn;
+  fatal?: LogFn;
+}
+
 export interface Osm2pgsqlConfig {
   slim?: boolean;
   cache: number;
   processes: number;
   output: OutputType;
   expireOutput: boolean;
-  schema: string;
-  middleSchema: string;
+  schema?: string;
+  middleSchema?: string;
   logger: {
     level: LogLevel;
     progress: boolean;
