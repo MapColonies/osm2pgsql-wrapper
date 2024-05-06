@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.2.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v3.1.0...v3.2.0) (2024-01-28)
+
+
+### Features
+
+* application metrics and multiple bugs  ([#23](https://github.com/MapColonies/osm2pgsql-wrapper/issues/23)) ([d9d3fc8](https://github.com/MapColonies/osm2pgsql-wrapper/commit/d9d3fc8a898ae3d2616b49500add69e8c922f329))
+
+
+### Bug Fixes
+
+* osm2pgsql as deployment bugs ([#22](https://github.com/MapColonies/osm2pgsql-wrapper/issues/22)) ([daf6ff0](https://github.com/MapColonies/osm2pgsql-wrapper/commit/daf6ff0a4ad3d423796017e6c618058100e7747b))
+
 ## [3.1.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v3.0.0...v3.1.0) (2023-10-11)
 
 ## [3.0.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v2.4.1...v3.0.0) (2023-06-14)
