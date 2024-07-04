@@ -45,11 +45,14 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       })
       .option('uploadTargets', {
         alias: ['u', 'upload-targets'],
-        type: 'string',
+        type: 'array',
         describe: 'upload expired tiles to the selected sources',
         choices: ['s3', 'queue'],
-        array: true,
+        string: true,
         default: [] as string[],
+        coerce: (targetsString: string) => {
+          return targetsString[0] ? targetsString[0].split(',') : [];
+        },
       })
       .option('name', {
         alias: ['queue-name'],
@@ -89,7 +92,7 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       const configContent = await fsPromises.readFile(config, 'utf-8');
       const appendEntities = JSON.parse(configContent) as AppendEntity[];
 
-      logger.debug({ msg: 'append configuration', projectId: s3ProjectId, entitiesCount: appendEntities.length });
+      logger.info({ msg: 'append configuration', projectId: s3ProjectId, entitiesCount: appendEntities.length, uploadTargets });
 
       await manager.prepareManager(s3ProjectId, appendEntities, uploadTargets as ExpireTilesUploadTarget[]);
 
