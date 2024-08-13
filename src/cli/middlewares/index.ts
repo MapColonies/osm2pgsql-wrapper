@@ -18,10 +18,10 @@ type RegisterOnContainerMiddlewareFactory<T> = (container: DependencyContainer) 
 
 export const s3RegistrationMiddlewareFactory: RegisterOnContainerMiddlewareFactory<GlobalArguments> = (dependencyContainer) => {
   const middleware = (args: Arguments<GlobalArguments>): void => {
-    const { s3Endpoint, s3BucketName } = args;
+    const { s3Endpoint, s3BucketName, s3Acl } = args;
 
     const configStore = dependencyContainer.resolve<ConfigStore>(SERVICES.CONFIG_STORE);
-    configStore.set('s3', { bucketName: s3BucketName });
+    configStore.set('s3', { bucketName: s3BucketName, acl: s3Acl });
 
     const client = new S3Client({
       endpoint: s3Endpoint,
@@ -88,11 +88,6 @@ export const uploadTargetsRegistrationMiddlewareFactory: RegisterOnContainerMidd
             },
           },
         ]);
-      }
-
-      if (uploadTargetsSet.has('s3')) {
-        const { s3Acl } = args;
-        configStore.set('s3.acl', s3Acl);
       }
     }
   };

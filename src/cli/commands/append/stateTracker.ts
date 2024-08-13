@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { inject, singleton } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
-import { DATA_DIR, DEFAULT_SEQUENCE_NUMBER, SEQUENCE_NUMBER_REGEX, SERVICES, STATE_FILE } from '../../../common/constants';
+import { DATA_DIR, DEFAULT_SEQUENCE_NUMBER, SEQUENCE_NUMBER_REGEX, SERVICES, STATE_FILE, TIMESTAMP_REGEX } from '../../../common/constants';
 import { BucketDoesNotExistError, InvalidStateFileError } from '../../../common/errors';
 import { createDirectory, fetchSequenceNumber, streamToString } from '../../../common/util';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
@@ -93,6 +93,29 @@ export class StateTracker {
 
     await this.s3Client.putObjectWrapper(stateKey, stateBuffer);
     this.totalAppends++;
+  }
+
+  public async updateRemoteTimestamp(): Promise<void> {
+    const updatedTimestamp = new Date()
+      .toISOString()
+      .replace(/\.\d+Z$/, 'Z')
+      .replace(/:/g, '\\:');
+
+    this.logger.info({
+      msg: 'attempting to update remote timestamp on configured bucket',
+      projectId: this.projectId,
+      currentState: this.current,
+      toState: this.nextState,
+      bucketName: this.s3Client.bucketName,
+      acl: this.s3Client.acl,
+      updatedTimestamp,
+    });
+
+    stateContent = stateContent.replace(TIMESTAMP_REGEX, `timestamp=${updatedTimestamp}`);
+    const stateBuffer = Buffer.from(stateContent, 'utf-8');
+    const stateKey = join(this.projectId, STATE_FILE);
+
+    await this.s3Client.putObjectWrapper(stateKey, stateBuffer);
   }
 
   private fetchSequenceNumberSafely(content: string): number {
