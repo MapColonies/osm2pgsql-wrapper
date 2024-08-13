@@ -53,6 +53,7 @@ export const DEFAULT_SEQUENCE_NUMBER = -1;
 export const DEFAULT_PROJECT_CREATION_STATE = 1;
 export const SEQUENCE_NUMBER = 'sequenceNumber';
 export const SEQUENCE_NUMBER_REGEX = /sequenceNumber=\d+/;
+export const TIMESTAMP_REGEX = /timestamp=\d{4}-\d{2}-\d{2}T\d{2}\\?:\d{2}\\?:\d{2}Z/;
 export const SEQUENCE_NUMBER_PADDING_AMOUNT = 3;
 export const DIFF_TOP_DIR_DIVIDER = 1000000;
 export const DIFF_BOTTOM_DIR_DIVIDER = 1000;

@@ -31,4 +31,6 @@ export interface TileRequestQueuePayloadItem<A = BoundingBox | Feature> extends 
 export interface TileRequestQueuePayload<A = BoundingBox | Feature> {
   items: TileRequestQueuePayloadItem<A>[];
   source: 'expiredTiles';
+  state?: number;
+  force?: boolean;
 }
