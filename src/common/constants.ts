@@ -41,6 +41,7 @@ export const ExitCodes = {
   INVALID_GEOMETRY_ERROR: 109,
   REMOTE_RESOURCE_NOT_FOUND_ERROR: 110,
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
 export const NOT_FOUND_INDEX = -1;
 export const S3_REGION = 'us-east-1';

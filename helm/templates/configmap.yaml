@@ -29,7 +29,8 @@ data:
   TELEMETRY_METRICS_URL: {{ $metricsUrl }}
   {{ end }}
   HTTP_CLIENT_TIMEOUT: {{ .Values.env.httpClient.timeout | quote }}
-  OSM2PGSQL_SLIM: {{ .Values.env.osm2pgsql.slim | quote}}
+  OSM2PGSQL_SLIM: {{ .Values.env.osm2pgsql.slim | quote }}
+  OSM2PGSQL_EXTRA_ATTRIBUTES: {{ .Values.env.osm2pgsql.extraAttributes | quote }}
   OSM2PGSQL_CACHE: {{ .Values.env.osm2pgsql.cache | quote }}
   OSM2PGSQL_PROCESSES: {{ .Values.env.osm2pgsql.processes | quote }}
   OSM2PGSQL_OUTPUT: {{ .Values.env.osm2pgsql.output | quote }}
@@ -42,6 +43,13 @@ data:
   OSM2PGSQL_MIDDLE_SCHEMA: {{ .Values.env.osm2pgsql.middleSchema | quote }}
   OSMIUM_VERBOSE: {{ .Values.env.osmium.verbose | quote }}
   OSMIUM_PROGRESS: {{ .Values.env.osmium.progress | quote }}
+  {{- if .Values.mdr.enabled }}
+  MDR_ENABLED: "true"
+  MDR_CLIENT_URL: {{ .Values.mdr.client.url | quote }}
+  MDR_CLIENT_TIMEOUT: {{ .Values.mdr.client.timeout | quote }}
+  {{- else }}
+  MDR_ENABLED: "false"
+  {{- end }}
   {{- with .Values.pgboss }}
   PGBOSS_HOST: {{ .host | quote }}
   PGBOSS_PORT: {{ .port | default 5432 | quote }}

@@ -3,13 +3,14 @@ import { Registry } from 'prom-client';
 import { FactoryFunction } from 'tsyringe';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { SERVICES, METRICS_BUCKETS } from '../../../common/constants';
-import { IConfig } from '../../../common/interfaces';
+import { IConfig, MdrConfig } from '../../../common/interfaces';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
 import { S3RemoteResourceProvider } from '../../../remoteResource/s3ResourceProvider';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { QUEUE_PROVIDER_SYMBOL } from '../../../queue/constants';
 import { QueueProvider } from '../../../queue/queueProvider';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';
+import { MdrClient } from '../../../httpClient/mdrClient';
 import { AppendManager } from './appendManager';
 import { StateTracker } from './stateTracker';
 
@@ -27,6 +28,8 @@ export const appendManagerFactory: FactoryFunction<AppendManager> = (dependencyC
     : undefined;
   const registry = dependencyContainer.resolve<Registry>(SERVICES.METRICS_REGISTRY);
   const metricsBuckets = dependencyContainer.resolve<number[]>(METRICS_BUCKETS);
+  const mdrConfig = config.get<MdrConfig>('mdr');
+  const mdrClient = mdrConfig.enabled ? new MdrClient({ ...mdrConfig.client, logger: logger.child({ component: 'mdr' }) }) : undefined;
 
   return new AppendManager(
     logger,
@@ -39,6 +42,7 @@ export const appendManagerFactory: FactoryFunction<AppendManager> = (dependencyC
     remoteResourceManager,
     queueProv,
     registry,
-    metricsBuckets
+    metricsBuckets,
+    mdrClient
   );
 };

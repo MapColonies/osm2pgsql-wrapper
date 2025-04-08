@@ -83,6 +83,9 @@ export class OsmCommandRunner {
     if (osm2pgsqlConfig.slim !== undefined && osm2pgsqlConfig.slim) {
       osm2pgsqlArgs.push('--slim');
     }
+    if (osm2pgsqlConfig.extraAttributes) {
+      osm2pgsqlArgs.push('--extra-attributes');
+    }
     osm2pgsqlArgs.push(`--cache=${osm2pgsqlConfig.cache}`);
     osm2pgsqlArgs.push(`--number-processes=${osm2pgsqlConfig.processes}`);
     osm2pgsqlArgs.push(`--output=${osm2pgsqlConfig.output}`);

@@ -25,6 +25,7 @@
     "processes": 2,
     "output": "flex",
     "generateExpireOutput": true,
+    "extraAttributes": false,
     "logger": {
       "level": "info",
       "progress": true,
@@ -35,6 +36,13 @@
   "osmium": {
     "verbose": false,
     "progress": false
+  },
+  "mdr": {
+    "enabled": false,
+    "client": {
+      "url": "http://mdr.com",
+      "timeout": 10000
+    }
   },
   "arstotzka": {
     "enabled": false,

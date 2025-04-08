@@ -66,6 +66,7 @@ env:
     timeout: 1000
   osm2pgsql:
     slim: true
+    extraAttributes: false
     cache: 2500
     processes: 2
     output: flex
@@ -136,6 +137,12 @@ cli:
     dumpSourceType: remote-url # local-file, remote-url or dump-server
     dumpSource: 'https://remote-url.com'
     s3LuaScriptKey: script.lua
+
+mdr:
+  enabled: false
+  client:
+    url: 'https://mdr.com'
+    timeout: 10000
 
 arstotzka:
   enabled: false

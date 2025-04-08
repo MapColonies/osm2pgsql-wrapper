@@ -1,4 +1,5 @@
 import { MediatorConfig } from '@map-colonies/arstotzka-mediator';
+import { MdrClientOptions } from '../httpClient/mdrClient';
 import { LogLevel, OutputType, ResourceType } from './types';
 
 export interface IConfig {
@@ -30,6 +31,7 @@ export interface Osm2pgsqlConfig {
   processes: number;
   output: OutputType;
   expireOutput: boolean;
+  extraAttributes: boolean;
   schema?: string;
   middleSchema?: string;
   logger: {
@@ -54,4 +56,9 @@ export interface ArstotzkaConfig {
   enabled: boolean;
   serviceId: string;
   mediator: MediatorConfig;
+}
+
+export interface MdrConfig {
+  enabled: boolean;
+  client: MdrClientOptions;
 }

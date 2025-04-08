@@ -10,7 +10,14 @@ import { ActionStatus } from '@map-colonies/arstotzka-common';
 import client from 'prom-client';
 import { IConfig, RemoteResource } from '../../../common/interfaces';
 import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST, METRICS_BUCKETS } from '../../../common/constants';
-import { streamToUniqueLines, getDiffDirPathComponents, streamToFs, valuesToRange } from '../../../common/util';
+import {
+  streamToUniqueLines,
+  getDiffDirPathComponents,
+  streamToFs,
+  valuesToRange,
+  shouldEnrollMdr,
+  getMdrEnrollmentRange,
+} from '../../../common/util';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { AppendEntity } from '../../../validation/schemas';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';
@@ -19,6 +26,7 @@ import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { QueueProvider } from '../../../queue/queueProvider';
 import { RequestAlreadyInQueueError } from '../../../common/errors';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
+import { EnrollmentStatus, IMdrClient } from '../../../httpClient/mdrClient';
 import { terminateChildren } from '../../../commandRunner/spawner';
 import { QueueSettings, TileRequestQueuePayload } from './interfaces';
 import { StateTracker } from './stateTracker';
@@ -49,7 +57,8 @@ export class AppendManager {
     private readonly remoteResourceManager: RemoteResourceManager,
     private readonly queueProvider?: QueueProvider,
     @inject(SERVICES.METRICS_REGISTRY) registry?: client.Registry,
-    @inject(METRICS_BUCKETS) metricsBuckets?: number[]
+    @inject(METRICS_BUCKETS) metricsBuckets?: number[],
+    private readonly mdrClient?: IMdrClient
   ) {
     this.shouldGenerateExpireOutput = config.get<boolean>('osm2pgsql.generateExpireOutput');
     if (configStore.has('queue')) {
@@ -144,15 +153,7 @@ export class AppendManager {
     await mediator?.removeLock();
 
     try {
-      await this.appendNextState(replicationUrl);
-
-      await this.stateTracker.updateRemoteTimestamp();
-
-      if (this.shouldGenerateExpireOutput) {
-        await this.uploadExpired();
-      }
-
-      await this.stateTracker.updateRemoteState();
+      await this.appendProcedure(replicationUrl);
     } catch (error) {
       terminateChildren();
       await mediator?.updateAction({ status: ActionStatus.FAILED, metadata: { error } });
@@ -204,15 +205,7 @@ export class AppendManager {
       await mediator?.removeLock();
 
       try {
-        await this.appendNextState(replicationUrl);
-
-        await this.stateTracker.updateRemoteTimestamp();
-
-        if (this.shouldGenerateExpireOutput) {
-          await this.uploadExpired();
-        }
-
-        await this.stateTracker.updateRemoteState();
+        await this.appendProcedure(replicationUrl);
 
         this.appendsCounter?.inc({ status: 'completed' });
       } catch (error) {
@@ -232,6 +225,46 @@ export class AppendManager {
         projectId: this.stateTracker.projectId,
       });
     }
+  }
+
+  private async appendProcedure(replicationUrl: string): Promise<void> {
+    // if mdr is enabled get pre append status
+    const preMdrStatus = await this.mdrClient?.getStatus();
+
+    // actual osm2pg append
+    await this.appendNextState(replicationUrl);
+
+    // update remote's timestamp
+    await this.stateTracker.updateRemoteTimestamp();
+
+    // if mdr is enabled get post append status
+    const postMdrStatus = await this.mdrClient?.getStatus();
+
+    // if needed upload expired
+    if (this.shouldGenerateExpireOutput) {
+      await this.uploadExpired();
+    }
+
+    // if needed enroll on mdr
+    if (shouldEnrollMdr(preMdrStatus, postMdrStatus)) {
+      await this.mdrClient?.postEnrollment({
+        state: this.stateTracker.nextState,
+        isFull: false,
+        ...getMdrEnrollmentRange(preMdrStatus as EnrollmentStatus, postMdrStatus as EnrollmentStatus),
+      });
+    }
+
+    // update remote's state
+    await this.stateTracker.updateRemoteState();
+
+    this.logger.info({
+      msg: 'append procedure completed',
+      state: this.stateTracker.nextState,
+      enabledGenerateExpireOutput: this.shouldGenerateExpireOutput,
+      enabledMdr: this.mdrClient !== undefined,
+      preStatus: preMdrStatus,
+      postStatus: postMdrStatus,
+    });
   }
 
   private async appendNextState(replicationUrl: string): Promise<void> {

@@ -3,6 +3,7 @@ import fsPromises from 'fs/promises';
 import * as stream from 'stream';
 import { promisify } from 'util';
 import readline from 'readline';
+import { EnrollmentStatus } from '../httpClient/mdrClient';
 import {
   DIFF_BOTTOM_DIR_DIVIDER,
   DIFF_STATE_FILE_MODULO,
@@ -97,4 +98,13 @@ export const streamToUniqueLines = async (stream: NodeJS.ReadableStream): Promis
 
 export const sortArrAlphabetically = (arr: string[], sort?: Sort): string[] => {
   return arr.sort((a, b) => (sort === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+};
+
+export const shouldEnrollMdr = (pre: EnrollmentStatus | undefined, post: EnrollmentStatus | undefined): boolean =>
+  pre !== undefined && post !== undefined && (pre.count !== post.count || pre.latest !== post.latest);
+
+export const getMdrEnrollmentRange = (pre: EnrollmentStatus, post: EnrollmentStatus): { from: number; to: number } => {
+  const from = pre.latest !== undefined ? pre.latest + 1 : 0;
+  const to = post.latest as number;
+  return { from, to };
 };
