@@ -228,30 +228,30 @@ export class AppendManager {
   }
 
   private async appendProcedure(replicationUrl: string): Promise<void> {
-    // if mdr is enabled get pre append status
+    // get pre append status if enabled
     const preMdrStatus = await this.mdrClient?.getStatus();
 
-    // actual osm2pg append
+    // execute osm2pg append
     await this.appendNextState(replicationUrl);
 
     // update remote's timestamp
     await this.stateTracker.updateRemoteTimestamp();
 
-    // if mdr is enabled get post append status
+    // get post append mdr status if enabled
     const postMdrStatus = await this.mdrClient?.getStatus();
 
-    // if needed upload expired
-    if (this.shouldGenerateExpireOutput) {
-      await this.uploadExpired();
-    }
-
-    // if needed enroll on mdr
+    // enroll on mdr if needed
     if (shouldEnrollMdr(preMdrStatus, postMdrStatus)) {
       await this.mdrClient?.postEnrollment({
         state: this.stateTracker.nextState,
         isFull: false,
         ...getMdrEnrollmentRange(preMdrStatus as EnrollmentStatus, postMdrStatus as EnrollmentStatus),
       });
+    }
+
+    // upload expired if needed
+    if (this.shouldGenerateExpireOutput) {
+      await this.uploadExpired();
     }
 
     // update remote's state

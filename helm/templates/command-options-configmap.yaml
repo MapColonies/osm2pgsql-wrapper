@@ -30,5 +30,6 @@ data:
   DUMP_SOURCE_TYPE: {{ .Values.cli.create.dumpSourceType | quote }}
   DUMP_SOURCE: {{ .Values.cli.create.dumpSource | quote }}
   S3_LUA_SCRIPT_KEY: {{ .Values.cli.create.s3LuaScriptKey | quote }}
+  STATE_OVERRIDE: {{ .Values.cli.create.stateOverride | quote }}
   {{- end }}
 {{- end -}}

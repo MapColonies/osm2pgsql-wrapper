@@ -137,6 +137,7 @@ cli:
     dumpSourceType: remote-url # local-file, remote-url or dump-server
     dumpSource: 'https://remote-url.com'
     s3LuaScriptKey: script.lua
+    # stateOverride:
 
 mdr:
   enabled: false
