@@ -1,9 +1,9 @@
+import type { Polygon } from 'geojson';
+
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { Polygon } from '@turf/turf';
+export const WEST_GLOBE_BBOX_FOR_FILTER: [number, number, number, number] = [0, -90, 180, 90];
 
-export const WEST_GLOBE_BBOX_FOR_FILTER = [0, -90, 180, 90];
-
-export const TOP_WEST_GLOBE_BBOX_FOR_FILTER = [0, 0, 180, 90];
+export const TOP_WEST_GLOBE_BBOX_FOR_FILTER: [number, number, number, number] = [0, 0, 180, 90];
 
 export const WHOLE_GLOBE_BBOX = {
   west: -180,
@@ -33,7 +33,7 @@ export const TOP_WEST_GLOBE_BBOX = {
   north: 85.0511287798066,
 };
 
-export const bboxToGeojson = (bbox: number[]): Polygon => {
+export const bboxToGeojson = (bbox: [number, number, number, number]): Polygon => {
   const [west, south, east, north] = bbox;
   return {
     type: 'Polygon',

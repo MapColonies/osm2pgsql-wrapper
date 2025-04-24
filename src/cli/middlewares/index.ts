@@ -1,5 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import PgBoss from 'pg-boss';
+import pgBoss from 'pg-boss';
 import { DependencyContainer, Lifecycle } from 'tsyringe';
 import { Arguments, MiddlewareFunction } from 'yargs';
 import { CleanupRegistry } from '@map-colonies/cleanup-registry';
@@ -74,7 +74,7 @@ export const uploadTargetsRegistrationMiddlewareFactory: RegisterOnContainerMidd
         const pgBossDbConfig = config.get<DbConfig>('pgboss');
         const pgBossInstance = pgBossFactory(pgBossDbConfig);
         registerDependencies([
-          { token: PgBoss, provider: { useValue: pgBossInstance } },
+          { token: pgBoss, provider: { useValue: pgBossInstance } },
           {
             token: QUEUE_PROVIDER_SYMBOL,
             provider: { useClass: PgBossQueueProvider },

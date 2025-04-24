@@ -1,13 +1,13 @@
-ARG NODE_VERSION=16
+ARG NODE_VERSION=20
 
 FROM ubuntu:20.04 as build
 
 ENV DEBIAN_FRONTEND=noninteractive
 ARG OSM2PGSQL_REPOSITORY=https://github.com/MapColonies/osm2pgsql.git
 ARG OSM2PGSQL_COMMIT_SHA=078884e01c1dc3c9c20c85cf9e57436b294e7e65
-ARG OSMIUM_TOOL_TAG=v1.16.0
-ARG PROTOZERO_TAG=v1.7.1
-ARG LIBOSMIUM_TAG=v2.20.0
+ARG OSMIUM_TOOL_TAG=v1.18.0
+ARG PROTOZERO_TAG=v1.8.0
+ARG LIBOSMIUM_TAG=v2.22.0
 
 RUN apt-get -y update && apt -y install \
   make \
@@ -29,7 +29,8 @@ RUN apt-get -y update && apt -y install \
   nlohmann-json3-dev \
   libpotrace-dev \
   lua5.3 \
-  pyosmium
+  pyosmium \
+  libluajit-5.1-dev
 
 RUN git clone ${OSM2PGSQL_REPOSITORY} ./osm2pgsql && \
   cd osm2pgsql && \
@@ -46,7 +47,7 @@ RUN git clone -b ${OSMIUM_TOOL_TAG} --single-branch https://github.com/osmcode/o
   cd osmium-tool && \
   mkdir build && \
   cd build && \
-  cmake .. && \
+  cmake -D WITH_LUAJIT=ON .. && \
   make
 
 FROM node:${NODE_VERSION} as buildApp
@@ -54,6 +55,7 @@ FROM node:${NODE_VERSION} as buildApp
 WORKDIR /tmp/buildApp
 
 COPY ./package*.json ./
+COPY .husky/ .husky/
 
 RUN npm install
 COPY . .
@@ -61,6 +63,7 @@ RUN npm run build
 
 FROM ubuntu:20.04 as production
 
+ENV NODE_ENV=production
 ENV DEBIAN_FRONTEND=noninteractive
 ENV workdir /app
 ARG NODE_VERSION
@@ -74,14 +77,15 @@ RUN ln -s /osm2pgsql/osm2pgsql /bin/osm2pgsql && ln -s /osmium-tool/build/osmium
 RUN apt-get update \
     && apt-get -yq install curl \
     && curl -L https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash \
-    && apt-get -yq install nodejs libboost-filesystem-dev libpq-dev libproj-dev liblua5.3-dev libboost-program-options-dev libexpat1-dev
+    && apt-get -yq install nodejs libboost-filesystem-dev libpq-dev libproj-dev liblua5.3-dev libboost-program-options-dev libexpat1-dev dumb-init
 
 COPY ./package*.json ./
+COPY .husky/ .husky/
 
 RUN npm ci --only=production
 
-COPY --from=buildApp /tmp/buildApp/dist .
-COPY ./config ./config
+COPY --chown=node:node --from=buildApp /tmp/buildApp/dist .
+COPY --chown=node:node ./config ./config
 COPY start.sh .
 
 RUN chgrp root ${workdir}/start.sh && chmod -R a+rwx ${workdir} && \

@@ -121,7 +121,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     if (!validationResponse.isValid || validationResponse.content === undefined) {
       const { errors } = validationResponse;
       logger.error({ err: errors, msg: 'argument validation failure', command });
-      throw new Error(errors);
+      throw new Error('argument validation failure');
     }
   };
 

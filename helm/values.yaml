@@ -7,19 +7,66 @@ global:
 enabled: true
 environment: development
 
-cronAnnotations: {}
-Annotations: {}
+revisionHistoryLimit: 5 # Amount of revisions we keep
+nodePort: 30030 #for minikube deployment only
+resetOnConfigChange: false
+
+nameOverride: ""
+fullnameOverride: ""
+
+configManagement:
+  offlineMode: false
+  name: 'service-name'
+  version: 'latest'
+  serverUrl: 'http://localhost:8080/api'
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  path: /liveness
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  path: /liveness
+
 podAnnotations: {}
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+extraEnvVars: []
+
+command: []
+args: []
+# command: [ "/bin/sh", "-c", "--" ]
+# args: [ "while true; do sleep infinity; done;" ]
+
+sidecars: []
 
 cloudProvider:
   flavor: openshift
-  dockerRegistryUrl: my-registry-url.io
+  dockerRegistryUrl: ''
+  imagePullSecretName: ''
+
+caSecretName: ''
+caPath: '/usr/local/share/ca-certificates'
+caKey: 'ca.crt'
 
 image:
   repository: osm2pgsql-wrapper
-  # Overrides the image tag whose default is the chart appVersion.
-  # tag: 'v1.0.0'
-  pullPolicy: Always
+  # If commented, appVersion will be taken. See: _helpers.tpl
+  # tag: 'latest'
+  pullPolicy: IfNotPresent
+
+deployment:
+  enabled: false
+  waitTimeSeconds: 30
 
 job:
   enabled: true
@@ -28,22 +75,8 @@ job:
   ttlSecondsAfterFinished: 60
   backoffLimit: 6
 
-cron:
-  enabled: false
-  apiVersion: 'batch/v1' # depends on openshift version batch/v1 or batch/v1beta1
-  restartPolicy: OnFailure
-  schedule: '* * * * *'
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 3
-  concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 200
-
-deployment:
-  enabled: false
-  waitTimeSeconds: 30
-
 resources:
-  enabled: false
+  enabled: true
   value:
     limits:
       cpu: 100m
@@ -53,6 +86,9 @@ resources:
       memory: 128Mi
 
 env:
+  port: 8080
+  targetPort: 8080
+  protocol: TCP
   logLevel: info
   logPrettyPrintEnabled: false
   tracing:

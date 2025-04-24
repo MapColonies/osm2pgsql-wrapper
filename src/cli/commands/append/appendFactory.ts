@@ -50,7 +50,7 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         choices: ['s3', 'queue'],
         string: true,
         default: [] as string[],
-        coerce: (targetsString: string) => {
+        coerce: (targetsString: [string]) => {
           return targetsString[0] ? targetsString[0].split(',') : [];
         },
       })
@@ -123,7 +123,7 @@ export const appendCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     if (!validationResponse.isValid || validationResponse.content === undefined) {
       const { errors } = validationResponse;
       logger.error({ err: errors, msg: 'argument validation failure', command });
-      throw new Error(errors);
+      throw new Error('argument validation failure');
     }
   };
 

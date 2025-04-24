@@ -5,8 +5,7 @@
 **job kind:**
 
 - `job.enabled` - run has a job
-- `cron.enabled` - run has a cronjob
-- `cron.schedule` - the cronjob schedule interval in the format of [the cron schedule syntax](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#cron-schedule-syntax)
+- `deployment.enabled` - run has deployment
 
 **postgres:**
 

@@ -1,6 +1,7 @@
 import { Logger } from '@map-colonies/js-logger';
 import { Registry } from 'prom-client';
 import { FactoryFunction } from 'tsyringe';
+import { ConfigType } from '@src/common/config';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import { SERVICES, METRICS_BUCKETS } from '../../../common/constants';
 import { IConfig, MdrConfig } from '../../../common/interfaces';
@@ -16,7 +17,7 @@ import { StateTracker } from './stateTracker';
 
 export const appendManagerFactory: FactoryFunction<AppendManager> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
-  const config = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
+  const config = dependencyContainer.resolve<ConfigType>(SERVICES.CONFIG);
   const stateTracker = dependencyContainer.resolve(StateTracker);
   const s3Client = dependencyContainer.resolve(S3ClientWrapper);
   const replicationClient = dependencyContainer.resolve(ReplicationClient);
@@ -28,7 +29,7 @@ export const appendManagerFactory: FactoryFunction<AppendManager> = (dependencyC
     : undefined;
   const registry = dependencyContainer.resolve<Registry>(SERVICES.METRICS_REGISTRY);
   const metricsBuckets = dependencyContainer.resolve<number[]>(METRICS_BUCKETS);
-  const mdrConfig = config.get<MdrConfig>('mdr');
+  const mdrConfig = config.get('mdr') as MdrConfig;
   const mdrClient = mdrConfig.enabled ? new MdrClient({ ...mdrConfig.client, logger: logger.child({ component: 'mdr' }) }) : undefined;
 
   return new AppendManager(

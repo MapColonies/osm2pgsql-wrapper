@@ -30,7 +30,7 @@ export interface Osm2pgsqlConfig {
   cache: number;
   processes: number;
   output: OutputType;
-  expireOutput: boolean;
+  generateExpireOutput: boolean;
   extraAttributes: boolean;
   schema?: string;
   middleSchema?: string;
@@ -56,6 +56,10 @@ export interface ArstotzkaConfig {
   enabled: boolean;
   serviceId: string;
   mediator: MediatorConfig;
+}
+
+export interface HttpClientConfig {
+  timeout: number;
 }
 
 export interface MdrConfig {

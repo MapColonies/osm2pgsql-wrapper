@@ -1,5 +1,6 @@
 import { BoundingBox } from '@map-colonies/tile-calc';
-import { booleanContains, Feature, Geometry, Polygon } from '@turf/turf';
+import { booleanContains } from '@turf/turf';
+import type { Feature, Geometry, Polygon } from 'geojson';
 
 const basePolygon: Polygon = {
   type: 'Polygon',
@@ -12,7 +13,7 @@ export type ExpireTilePostFilterFunc = (bbox: BoundingBox) => boolean;
 export const getFilterByZoomFunc = (zoom: number): ExpireTilePreFilterFunc => {
   const filter: ExpireTilePreFilterFunc = (expireTile) => {
     const elements = expireTile.split('/');
-    const zoomValue = parseInt(elements[0]);
+    const zoomValue = parseInt(elements[0] as string);
     return zoomValue === zoom;
   };
   return filter;
@@ -38,7 +39,7 @@ export const getFilterByGeojsonFunc = (geometry: Feature | Geometry): ExpireTile
   return filter;
 };
 
-export const getFilterByBboxFunc = (containingBbox: number[]): ExpireTilePostFilterFunc => {
+export const getFilterByBboxFunc = (containingBbox: [number, number, number, number]): ExpireTilePostFilterFunc => {
   const filter: ExpireTilePostFilterFunc = (bbox) => {
     const { west, south, east, north } = bbox;
     return west >= containingBbox[0] && south >= containingBbox[1] && east <= containingBbox[2] && north <= containingBbox[3];

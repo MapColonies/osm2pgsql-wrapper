@@ -1,7 +1,7 @@
 import { readPackageJsonSync } from '@map-colonies/read-pkg';
 
 export const CLI_NAME = readPackageJsonSync().name ?? 'unknown_cli';
-export const DEFAULT_PORT = 8080;
+export const DEFAULT_SERVER_PORT = 80;
 
 export const IGNORED_OUTGOING_TRACE_ROUTES = [/^.*\/v1\/metrics.*$/];
 export const IGNORED_INCOMING_TRACE_ROUTES = [/^.*\/docs.*$/];
@@ -13,18 +13,18 @@ export const LIVENESS_PROBE_FACTORY = Symbol('LivenessProbeFactory');
 export const METRICS_BUCKETS = Symbol('metrics_buckets');
 
 /* eslint-disable @typescript-eslint/naming-convention */
-export const SERVICES: Record<string, symbol> = {
+export const SERVICES = {
   LOGGER: Symbol('Logger'),
   CONFIG: Symbol('Config'),
   TRACER: Symbol('Tracer'),
-  METER: Symbol('Meter'),
+  METRICS: Symbol('Metrics'),
   S3: Symbol('S3'),
   HTTP_CLIENT: Symbol('HttpClient'),
   CONFIG_STORE: Symbol('ConfigStore'),
   ARSTOTZKA: Symbol('Arstotzka'),
   CLEANUP_REGISTRY: Symbol('CleanupRegistry'),
   METRICS_REGISTRY: Symbol('MetricsRegistry'),
-};
+} satisfies Record<string, symbol>;
 
 export const ExitCodes = {
   SUCCESS: 0,
