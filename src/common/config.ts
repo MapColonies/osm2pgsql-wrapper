@@ -1,5 +1,6 @@
 import { type ConfigInstance, config } from '@map-colonies/config';
 import { commonBoilerplateV2, type commonBoilerplateV2Type } from '@map-colonies/schemas';
+import { DbConfig } from '@src/queue/pgBossFactory';
 import { ArstotzkaConfig, HttpClientConfig, MdrConfig, Osm2pgsqlConfig, OsmiumConfig } from './interfaces';
 
 // Choose here the type of the config instance and import this type from the entire application
@@ -10,6 +11,7 @@ type ConfigType = ConfigInstance<
     httpClient?: HttpClientConfig;
     arstotzka?: ArstotzkaConfig;
     mdr?: MdrConfig;
+    pgboss?: DbConfig;
   }
 >;
 

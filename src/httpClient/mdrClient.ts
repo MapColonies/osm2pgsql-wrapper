@@ -27,7 +27,7 @@ export interface IMdrClient {
 }
 
 @injectable()
-export class MdrClient implements IMdrClient {
+export class MdrClient {
   private readonly httpClient: AxiosInstance;
   private readonly logger: ILogger | undefined;
 

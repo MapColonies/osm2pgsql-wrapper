@@ -3,6 +3,7 @@ import fsPromises from 'fs/promises';
 import type { Feature, Geometry } from 'geojson';
 import geojsonValidator from '@turf/boolean-valid';
 import { Logger } from '@map-colonies/js-logger';
+import { BBox } from '@common/types';
 import { DATA_DIR } from '../common/constants';
 import { createDirectory, getFileDirectory } from '../common/util';
 import { RemoteResource } from '../common/interfaces';
@@ -83,7 +84,7 @@ export class RemoteResourceManager {
       const bbox = JSON.parse(resource.content) as unknown;
       const res = ajvWrapper(bbox, BBOX_SCHEMA);
       if (res.isValid) {
-        resource.processedContent = getFilterByBboxFunc(res.content as [number, number, number, number]);
+        resource.processedContent = getFilterByBboxFunc(res.content as BBox);
         continue;
       }
 

@@ -14,7 +14,7 @@ export class PgBossQueueProvider implements QueueProvider {
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    private readonly pgBoss: pgBoss,
+    @inject(SERVICES.PGBOSS) private readonly pgBoss: pgBoss,
     @inject(SERVICES.CONFIG_STORE) configStore: IConfig,
     @inject(SERVICES.METRICS_REGISTRY) registry?: Registry
   ) {

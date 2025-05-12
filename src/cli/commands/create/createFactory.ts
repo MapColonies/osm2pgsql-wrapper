@@ -3,7 +3,8 @@ import { Logger } from '@map-colonies/js-logger';
 import { FactoryFunction } from 'tsyringe';
 import { StatefulMediator } from '@map-colonies/arstotzka-mediator';
 import { ActionStatus } from '@map-colonies/arstotzka-common';
-import { ArstotzkaConfig, IConfig, MdrConfig } from '../../../common/interfaces';
+import { ConfigType } from '@src/common/config';
+import { ArstotzkaConfig, MdrConfig } from '../../../common/interfaces';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
 import { ErrorWithExitCode } from '../../../common/errors';
@@ -23,7 +24,7 @@ export interface CreateArguments extends GlobalArguments {
 export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments, CreateArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
 
-  const config = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
+  const config = dependencyContainer.resolve<ConfigType>(SERVICES.CONFIG);
 
   const builder = (args: Argv<GlobalArguments>): Argv<CreateArguments> => {
     args
@@ -69,7 +70,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       mediator = new StatefulMediator({ ...arstotzkaConfig.mediator, serviceId: arstotzkaConfig.serviceId, logger });
     }
 
-    const mdrConfig = config.get<MdrConfig>('mdr');
+    const mdrConfig = config.get('mdr') as MdrConfig;
     let mdrClient: IMdrClient | undefined;
     if (mdrConfig.enabled) {
       mdrClient = new MdrClient({ logger: logger.child({ component: 'mdr' }), ...mdrConfig.client });

@@ -1,7 +1,6 @@
 import { readPackageJsonSync } from '@map-colonies/read-pkg';
 
 export const CLI_NAME = readPackageJsonSync().name ?? 'unknown_cli';
-export const DEFAULT_SERVER_PORT = 80;
 
 export const IGNORED_OUTGOING_TRACE_ROUTES = [/^.*\/v1\/metrics.*$/];
 export const IGNORED_INCOMING_TRACE_ROUTES = [/^.*\/docs.*$/];
@@ -19,6 +18,7 @@ export const SERVICES = {
   TRACER: Symbol('Tracer'),
   METRICS: Symbol('Metrics'),
   S3: Symbol('S3'),
+  PGBOSS: Symbol('Pgboss'),
   HTTP_CLIENT: Symbol('HttpClient'),
   CONFIG_STORE: Symbol('ConfigStore'),
   ARSTOTZKA: Symbol('Arstotzka'),
