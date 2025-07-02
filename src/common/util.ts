@@ -103,9 +103,6 @@ export const sortArrAlphabetically = (arr: string[], sort?: Sort): string[] => {
   return arr.sort((a, b) => (sort === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
 };
 
-export const shouldEnrollMdr = (pre: EnrollmentStatus | undefined, post: EnrollmentStatus | undefined): boolean =>
-  pre !== undefined && post !== undefined && (pre.count !== post.count || pre.latest !== post.latest);
-
 export const getMdrEnrollmentRange = (pre: EnrollmentStatus, post: EnrollmentStatus): { from: number; to: number } => {
   const from = pre.latest !== undefined ? pre.latest + 1 : 0;
   const to = post.latest as number;

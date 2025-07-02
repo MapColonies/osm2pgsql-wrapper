@@ -11,14 +11,7 @@ import { Histogram, Counter, Registry } from 'prom-client';
 import type { ConfigType } from '@src/common/config';
 import type { IConfig, RemoteResource } from '../../../common/interfaces';
 import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST, METRICS_BUCKETS } from '../../../common/constants';
-import {
-  streamToUniqueLines,
-  getDiffDirPathComponents,
-  streamToFs,
-  valuesToRange,
-  shouldEnrollMdr,
-  getMdrEnrollmentRange,
-} from '../../../common/util';
+import { streamToUniqueLines, getDiffDirPathComponents, streamToFs, valuesToRange, getMdrEnrollmentRange } from '../../../common/util';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { AppendEntity } from '../../../validation/schemas';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';
@@ -27,7 +20,7 @@ import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
 import type { QueueProvider } from '../../../queue/queueProvider';
 import { RequestAlreadyInQueueError } from '../../../common/errors';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
-import type { EnrollmentStatus, IMdrClient } from '../../../httpClient/mdrClient';
+import type { IMdrClient } from '../../../httpClient/mdrClient';
 import { terminateChildren } from '../../../commandRunner/spawner';
 import { QueueSettings, TileRequestQueuePayload } from './interfaces';
 import { StateTracker } from './stateTracker';
@@ -243,12 +236,12 @@ export class AppendManager {
     // get post append mdr status if enabled
     const postMdrStatus = await this.mdrClient?.getStatus();
 
-    // enroll on mdr if needed
-    if (shouldEnrollMdr(preMdrStatus, postMdrStatus)) {
+    // enroll on mdr
+    if (preMdrStatus && postMdrStatus) {
       await this.mdrClient?.postEnrollment({
         state: this.stateTracker.nextState,
         isFull: false,
-        ...getMdrEnrollmentRange(preMdrStatus as EnrollmentStatus, postMdrStatus as EnrollmentStatus),
+        ...getMdrEnrollmentRange(preMdrStatus, postMdrStatus),
       });
     }
 
@@ -262,7 +255,7 @@ export class AppendManager {
 
     this.logger.info({
       msg: 'append procedure completed',
-      state: this.stateTracker.nextState,
+      state: this.stateTracker.current,
       enabledGenerateExpireOutput: this.shouldGenerateExpireOutput,
       enabledMdr: this.mdrClient !== undefined,
       preStatus: preMdrStatus,

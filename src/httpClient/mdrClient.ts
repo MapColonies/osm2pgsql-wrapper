@@ -44,6 +44,8 @@ export class MdrClient {
 
     const { data } = await this.httpClient.get<EnrollmentStatus>('/enrollment/status');
 
+    this.logger?.info({ msg: 'current enrollment status', data });
+
     return data;
   }
 
