@@ -11,8 +11,8 @@
       }
     },
     "tracing": {
-      "enabled": {
-        "__name": "TELEMETRY_TRACING_ENABLED",
+      "isEnabled": {
+        "__name": "TELEMETRY_TRACING_IS_ENABLED",
         "__format": "boolean"
       },
       "url": "TELEMETRY_TRACING_URL"
@@ -52,6 +52,10 @@
     "output": "OSM2PGSQL_OUTPUT",
     "generateExpireOutput": {
       "__name": "OSM2PGSQL_GENERATE_EXPIRE_OUTPUT",
+      "__format": "boolean"
+    },
+    "extraAttributes": {
+      "__name": "OSM2PGSQL_EXTRA_ATTRIBUTES",
       "__format": "boolean"
     },
     "schema": "OSM2PGSQL_SCHEMA",
@@ -101,6 +105,19 @@
       "cert": "PGBOSS_CERT_PATH"
     },
     "database": "PGBOSS_DATABASE"
+  },
+  "mdr": {
+    "enabled": {
+      "__name": "MDR_ENABLED",
+      "__format": "boolean"
+    },
+    "client": {
+      "url": "MDR_CLIENT_URL",
+      "timeout": {
+        "__name": "MDR_CLIENT_TIMEOUT",
+        "__format": "number"
+      }
+    }
   },
   "arstotzka": {
     "enabled": {

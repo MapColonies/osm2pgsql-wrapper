@@ -3,22 +3,24 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 import { inject } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
 import { BoundingBox } from '@map-colonies/tile-calc';
 import { StatefulMediator } from '@map-colonies/arstotzka-mediator';
 import { ActionStatus } from '@map-colonies/arstotzka-common';
-import client from 'prom-client';
-import { IConfig, RemoteResource } from '../../../common/interfaces';
+import { Histogram, Counter, Registry } from 'prom-client';
+import type { ConfigType } from '@src/common/config';
+import type { IConfig, RemoteResource } from '../../../common/interfaces';
 import { DATA_DIR, SERVICES, DIFF_FILE_EXTENTION, EXPIRE_LIST, METRICS_BUCKETS } from '../../../common/constants';
-import { streamToUniqueLines, getDiffDirPathComponents, streamToFs, valuesToRange } from '../../../common/util';
+import { streamToUniqueLines, getDiffDirPathComponents, streamToFs, valuesToRange, getMdrEnrollmentRange } from '../../../common/util';
 import { ReplicationClient } from '../../../httpClient/replicationClient';
 import { AppendEntity } from '../../../validation/schemas';
 import { S3ClientWrapper } from '../../../s3Client/s3Client';
 import { ExpireTilesUploadTarget } from '../../../common/types';
 import { OsmCommandRunner } from '../../../commandRunner/osmCommandRunner';
-import { QueueProvider } from '../../../queue/queueProvider';
+import type { QueueProvider } from '../../../queue/queueProvider';
 import { RequestAlreadyInQueueError } from '../../../common/errors';
 import { RemoteResourceManager } from '../../../remoteResource/remoteResourceManager';
+import type { IMdrClient } from '../../../httpClient/mdrClient';
 import { terminateChildren } from '../../../commandRunner/spawner';
 import { QueueSettings, TileRequestQueuePayload } from './interfaces';
 import { StateTracker } from './stateTracker';
@@ -32,15 +34,15 @@ export class AppendManager {
   private uploadTargets: ExpireTilesUploadTarget[] = [];
   private readonly shouldGenerateExpireOutput: boolean;
   private readonly queueSettings?: QueueSettings;
-  private readonly appendDurationHistogram?: client.Histogram<'project' | 'script'>;
-  private readonly appendsCounter?: client.Counter<'status'>;
-  private readonly expireTilesUploadDurationHistogram?: client.Histogram<'target'>;
-  private readonly expireTilesAttemptedUploadsCounter?: client.Counter<'target' | 'status'>;
-  private readonly tilesCounter?: client.Counter<'kind'>;
+  private readonly appendDurationHistogram?: Histogram<'project' | 'script'>;
+  private readonly appendsCounter?: Counter<'status'>;
+  private readonly expireTilesUploadDurationHistogram?: Histogram<'target'>;
+  private readonly expireTilesAttemptedUploadsCounter?: Counter<'target' | 'status'>;
+  private readonly tilesCounter?: Counter<'kind'>;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(SERVICES.CONFIG) config: IConfig,
+    @inject(SERVICES.CONFIG) config: ConfigType,
     private readonly stateTracker: StateTracker,
     private readonly s3Client: S3ClientWrapper,
     private readonly replicationClient: ReplicationClient,
@@ -48,15 +50,18 @@ export class AppendManager {
     configStore: IConfig,
     private readonly remoteResourceManager: RemoteResourceManager,
     private readonly queueProvider?: QueueProvider,
-    @inject(SERVICES.METRICS_REGISTRY) registry?: client.Registry,
-    @inject(METRICS_BUCKETS) metricsBuckets?: number[]
+    @inject(SERVICES.METRICS_REGISTRY) registry?: Registry,
+    @inject(METRICS_BUCKETS) metricsBuckets?: number[],
+    private readonly mdrClient?: IMdrClient
   ) {
-    this.shouldGenerateExpireOutput = config.get<boolean>('osm2pgsql.generateExpireOutput');
+    this.shouldGenerateExpireOutput = config.get('osm2pgsql.generateExpireOutput') ?? false;
+
     if (configStore.has('queue')) {
       this.queueSettings = configStore.get<QueueSettings>('queue');
     }
+
     if (registry !== undefined) {
-      this.appendDurationHistogram = new client.Histogram({
+      this.appendDurationHistogram = new Histogram({
         name: 'osm2pgsql_wrapper_append_duration_seconds',
         help: 'osm2pgsql-wrapper append duration in seconds',
         buckets: metricsBuckets,
@@ -64,14 +69,14 @@ export class AppendManager {
         registers: [registry],
       });
 
-      this.appendsCounter = new client.Counter({
+      this.appendsCounter = new Counter({
         name: 'osm2pgsql_wrapper_appends_count',
         help: 'The total number of state appends for all the projects configured, labeled by status',
         labelNames: ['status'] as const,
         registers: [registry],
       });
 
-      this.expireTilesUploadDurationHistogram = new client.Histogram({
+      this.expireTilesUploadDurationHistogram = new Histogram({
         name: 'osm2pgsql_wrapper_expire_tiles_uploads_duration_seconds',
         help: 'osm2pgsql-wrapper append duration in seconds',
         buckets: metricsBuckets,
@@ -79,14 +84,14 @@ export class AppendManager {
         registers: [registry],
       });
 
-      this.expireTilesAttemptedUploadsCounter = new client.Counter({
+      this.expireTilesAttemptedUploadsCounter = new Counter({
         name: 'osm2pgsql_wrapper_expire_tiles_attempted_uploads_counter',
         help: 'The total number of expired-tiles uploads per target and status (completed, empty, filtered)',
         labelNames: ['target', 'status'] as const,
         registers: [registry],
       });
 
-      this.tilesCounter = new client.Counter({
+      this.tilesCounter = new Counter({
         name: 'osm2pgsql_wrapper_tiles_counter',
         help: 'The total number of tiles by status (generated_expire_list, requested_bbox_items)',
         labelNames: ['kind'] as const,
@@ -144,15 +149,7 @@ export class AppendManager {
     await mediator?.removeLock();
 
     try {
-      await this.appendNextState(replicationUrl);
-
-      await this.stateTracker.updateRemoteTimestamp();
-
-      if (this.shouldGenerateExpireOutput) {
-        await this.uploadExpired();
-      }
-
-      await this.stateTracker.updateRemoteState();
+      await this.appendProcedure(replicationUrl);
     } catch (error) {
       terminateChildren();
       await mediator?.updateAction({ status: ActionStatus.FAILED, metadata: { error } });
@@ -204,15 +201,7 @@ export class AppendManager {
       await mediator?.removeLock();
 
       try {
-        await this.appendNextState(replicationUrl);
-
-        await this.stateTracker.updateRemoteTimestamp();
-
-        if (this.shouldGenerateExpireOutput) {
-          await this.uploadExpired();
-        }
-
-        await this.stateTracker.updateRemoteState();
+        await this.appendProcedure(replicationUrl);
 
         this.appendsCounter?.inc({ status: 'completed' });
       } catch (error) {
@@ -232,6 +221,46 @@ export class AppendManager {
         projectId: this.stateTracker.projectId,
       });
     }
+  }
+
+  private async appendProcedure(replicationUrl: string): Promise<void> {
+    // get pre append status if enabled
+    const preMdrStatus = await this.mdrClient?.getStatus();
+
+    // execute osm2pg append
+    await this.appendNextState(replicationUrl);
+
+    // update remote's timestamp
+    await this.stateTracker.updateRemoteTimestamp();
+
+    // get post append mdr status if enabled
+    const postMdrStatus = await this.mdrClient?.getStatus();
+
+    // enroll on mdr
+    if (preMdrStatus && postMdrStatus) {
+      await this.mdrClient?.postEnrollment({
+        state: this.stateTracker.nextState,
+        isFull: false,
+        ...getMdrEnrollmentRange(preMdrStatus, postMdrStatus),
+      });
+    }
+
+    // upload expired if needed
+    if (this.shouldGenerateExpireOutput) {
+      await this.uploadExpired();
+    }
+
+    // update remote's state
+    await this.stateTracker.updateRemoteState();
+
+    this.logger.info({
+      msg: 'append procedure completed',
+      state: this.stateTracker.current,
+      enabledGenerateExpireOutput: this.shouldGenerateExpireOutput,
+      enabledMdr: this.mdrClient !== undefined,
+      preStatus: preMdrStatus,
+      postStatus: postMdrStatus,
+    });
   }
 
   private async appendNextState(replicationUrl: string): Promise<void> {
@@ -358,7 +387,7 @@ export class AppendManager {
         state: this.stateTracker.nextState,
       });
 
-      for await (const target of this.uploadTargets) {
+      for (const target of this.uploadTargets) {
         const uploadTimerEnd = this.expireTilesUploadDurationHistogram?.startTimer({ target });
 
         if (target === 's3') {

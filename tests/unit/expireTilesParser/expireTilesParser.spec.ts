@@ -17,8 +17,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox([]);
 
       expect(bbox).toMatchObject([]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(0);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(0);
     });
 
     it('should parse with max zoom filter empty list into empty bbox', function () {
@@ -26,44 +26,44 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox([]);
 
       expect(bbox).toMatchObject([]);
-      expect(parser.getPreFilters.length).toEqual(1);
-      expect(parser.getPostFilters.length).toEqual(0);
+      expect(parser.getPreFilters).toHaveLength(1);
+      expect(parser.getPostFilters).toHaveLength(0);
     });
 
-    it('should parse without filters list into desc order bbox', function () {
+    it('should parse without filters a list into desc order bbox #1', function () {
       const parser = new ExpireTilesParser({ sort: 'desc' });
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1']);
 
       expect(bbox).toMatchObject([EAST_GLOBE_BBOX, WHOLE_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(0);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(0);
     });
 
-    it('should parse without filters list into asc order bbox', function () {
+    it('should parse without filters a list into asc order bbox #1', function () {
       const parser = new ExpireTilesParser({ sort: 'asc' });
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1']);
 
       expect(bbox).toMatchObject([WHOLE_GLOBE_BBOX, EAST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(0);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(0);
     });
 
-    it('should parse without filters list into desc order bbox', function () {
+    it('should parse without filters a list into desc order bbox #2', function () {
       const parser = new ExpireTilesParser({ sort: 'desc' });
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([WEST_GLOBE_BBOX, EAST_GLOBE_BBOX, WHOLE_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(0);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(0);
     });
 
-    it('should parse without filters list into asc order bbox', function () {
+    it('should parse without filters a list into asc order bbox #2', function () {
       const parser = new ExpireTilesParser({ sort: 'asc' });
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([WHOLE_GLOBE_BBOX, EAST_GLOBE_BBOX, WEST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(0);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(0);
     });
 
     it('should parse with max zoom filter list into bbox', function () {
@@ -72,8 +72,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([WEST_GLOBE_BBOX, EAST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(1);
-      expect(parser.getPostFilters.length).toEqual(0);
+      expect(parser.getPreFilters).toHaveLength(1);
+      expect(parser.getPostFilters).toHaveLength(0);
     });
 
     it('should parse with non existing zoom level filter list into empty bbox', function () {
@@ -84,8 +84,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([]);
-      expect(parser.getPreFilters.length).toEqual(1);
-      expect(parser.getPostFilters.length).toEqual(0);
+      expect(parser.getPreFilters).toHaveLength(1);
+      expect(parser.getPostFilters).toHaveLength(0);
     });
 
     it('should parse with bbox filter list into bbox of one containing tiles', function () {
@@ -96,8 +96,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([WEST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
 
     it('should parse with bbox filter list into empty bbox due to no tiles being contained', function () {
@@ -108,8 +108,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
 
     it('should parse with bbox and zoom filters list into bbox of one containing tiles, some are range', function () {
@@ -120,8 +120,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['1/0/0', '1/0/1', '1/1/0', '1/1/1', '2/2/0', '2/2/1']);
 
       expect(bbox).toMatchObject([{ west: 0, south: 0, east: 90, north: 85.0511287798066 }, TOP_WEST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
 
     it('should parse with bbox and zoom filters list into bbox of one containing tiles', function () {
@@ -131,8 +131,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([TOP_WEST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(1);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(1);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
 
     it('should parse with geojson filter list into bbox of one containing tiles', function () {
@@ -144,8 +144,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([WEST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
 
     it('should parse with geojson filter list into empty bbox due to no tiles being contained', function () {
@@ -157,8 +157,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
 
     it('should parse with geojson filter list into bbox of one containing tiles, some are range', function () {
@@ -170,8 +170,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['1/0/0', '1/0/1', '1/1/0', '1/1/1', '2/2/0', '2/2/1']);
 
       expect(bbox).toMatchObject([{ west: 0, south: 0, east: 90, north: 85.0511287798066 }, TOP_WEST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(0);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(0);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
 
     it('should parse with geojson and max zoom filters list into bbox of one containing tiles', function () {
@@ -183,8 +183,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['0/0/0', '1/0/0', '1/0/1', '1/1/0', '1/1/1']);
 
       expect(bbox).toMatchObject([TOP_WEST_GLOBE_BBOX]);
-      expect(parser.getPreFilters.length).toEqual(1);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(1);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
 
     it('should parse with geojson and max zoom filters list into bbox of one containing tiles, some are range', function () {
@@ -196,8 +196,8 @@ describe('ExpireTilesParser', () => {
       const bbox = parser.parseExpireListToFilteredBbox(['1/0/0', '1/0/1', '1/1/0', '1/1/1', '2/2/0', '2/2/1']);
 
       expect(bbox).toMatchObject([{ west: 0, south: 0, east: 90, north: 85.0511287798066 }]);
-      expect(parser.getPreFilters.length).toEqual(1);
-      expect(parser.getPostFilters.length).toEqual(1);
+      expect(parser.getPreFilters).toHaveLength(1);
+      expect(parser.getPostFilters).toHaveLength(1);
     });
   });
 });

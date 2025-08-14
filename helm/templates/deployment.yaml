@@ -2,26 +2,24 @@
 {{- $chartName := include "osm2pgsql-wrapper.name" . -}}
 {{- $cloudProviderFlavor := include "osm2pgsql-wrapper.cloudProviderFlavor" . -}}
 {{- $cloudProviderDockerRegistryUrl := include "osm2pgsql-wrapper.cloudProviderDockerRegistryUrl" . -}}
-{{- $tag := include "osm2pgsql-wrapper.tag" . -}}
+{{- $cloudProviderImagePullSecretName := include "osm2pgsql-wrapper.cloudProviderImagePullSecretName" . -}}
+{{- $imageTag := include "osm2pgsql-wrapper.tag" . -}}
 {{- if and (.Values.enabled) (.Values.deployment.enabled) -}}
-{{- if or .Values.job.enabled .Values.cron.enabled -}}
-{{ fail "only one of 'job'/'cron'/'deployment' can be enabled at the same time" }}
+{{- if or .Values.job.enabled -}}
+{{ fail "only one of 'job'/'deployment' can be enabled at the same time" }}
 {{- end -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $releaseName }}-{{ $chartName }}
+  name: {{ printf "%s-deployment" (include "osm2pgsql-wrapper.fullname" .) }}
   labels:
     app: {{ $chartName }}
     component: {{ $chartName }}
     environment: {{ include "osm2pgsql-wrapper.environment" . }}
     release: {{ $releaseName }}
     {{- include "osm2pgsql-wrapper.labels" . | nindent 4 }}
-{{- with .Values.annotations }}
-  annotations:
-{{ toYaml . | indent 4 }}
-{{- end }}
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: {{ $chartName }}
@@ -35,41 +33,26 @@ spec:
         release: {{ $releaseName }}
         run: {{ $releaseName }}-{{ $chartName }}
         {{- include "osm2pgsql-wrapper.selectorLabels" . | nindent 8 }}
-{{- with .Values.podAnnotations }}
-    metadata:
       annotations:
-{{ toYaml . | indent 8 }}
-{{- end }}
+      {{- if .Values.resetOnConfigChange }}
+        checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- end }}
+      {{- if .Values.podAnnotations }}
+      {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
+    {{- if $cloudProviderImagePullSecretName }}
+      imagePullSecrets:
+        - name: {{ $cloudProviderImagePullSecretName | quote }}
+    {{- end }}
       containers:
         - name: {{ $releaseName }}-{{ $chartName }}-deployment
           {{- with .Values.image }}
-          {{- if ne $cloudProviderFlavor "minikube" }}
-          image: {{ $cloudProviderDockerRegistryUrl }}/{{ .repository }}:{{ $tag }}
-          {{- else }}
-          image: {{ .repository }}:{{ $tag }}
+          image: {{ $cloudProviderDockerRegistryUrl }}{{ .repository }}:{{ $imageTag }}
+          imagePullPolicy: {{ .pullPolicy | default "IfNotPresent" }}
           {{- end }}
-          {{- end }}
-          imagePullPolicy: {{ .pullPolicy }}
           args:
             - {{ .Values.cli.command }}
-          envFrom:
-            - configMapRef:
-                name: {{ $releaseName }}-{{ $chartName }}-configmap
-            - configMapRef:
-                name: {{ $releaseName }}-{{ $chartName }}-command-options-configmap
-            - configMapRef:
-                name: {{ $releaseName }}-{{ $chartName }}-arstotzka-configmap
-            {{- if and .Values.arstotzka.enabled .Values.arstotzka.networkCM }}
-            - configMapRef:
-                name: {{ .Values.arstotzka.networkCM }}
-            {{- end }}
-            - secretRef:
-                name: {{ $releaseName }}-{{ $chartName }}-secret
-          {{- if .Values.resources.enabled }}
-          resources:
-            {{- toYaml .Values.resources.value | nindent 16 }}
-          {{- end }}
           volumeMounts:
           {{- if eq .Values.cli.command "append" }}
             - name: config-schema
@@ -83,7 +66,80 @@ spec:
             - name: pgboss-cert-conf
               mountPath: {{ .Values.pgboss.sslAuth.mountPath }}
           {{- end }}
+          {{- if .Values.caSecretName }}
+            - mountPath: {{ printf "%s/%s" .Values.caPath .Values.caKey | quote }}
+              name: root-ca
+              subPath: {{ quote .Values.caKey }}
+            {{- end }}
+            {{- if .Values.extraVolumeMounts -}}
+              {{ toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.env.targetPort | quote }}
+            {{- if .Values.caSecretName }}
+            - name: REQUESTS_CA_BUNDLE
+              value: {{ printf "%s/%s" .Values.caPath .Values.caKey | quote }}
+            - name: NODE_EXTRA_CA_CERTS
+              value: {{ printf "[%s/%s]" .Values.caPath .Values.caKey | quote }}
+            {{- end }}
+            {{- if .Values.extraEnvVars }}
+            {{- toYaml .Values.extraEnvVars | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ printf "%s-configmap" (include "osm2pgsql-wrapper.fullname" .) }}
+            - configMapRef:
+                name: {{ printf "%s-command-options-configmap" (include "osm2pgsql-wrapper.fullname" .) }}
+            - configMapRef:
+                name: {{ printf "%s-arstotzka-configmap" (include "osm2pgsql-wrapper.fullname" .) }}
+            {{- if and .Values.arstotzka.enabled .Values.arstotzka.networkCM }}
+            - configMapRef:
+                name: {{ .Values.arstotzka.networkCM }}
+            {{- end }}
+            - secretRef:
+                name: {{ printf "%s-secret" (include "osm2pgsql-wrapper.fullname" .) }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.env.targetPort }}
+              protocol: {{ .Values.env.protocol }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            httpGet:
+              path: {{ .Values.livenessProbe.path }}
+              port: {{ .Values.env.targetPort }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            httpGet:
+              path: {{ .Values.readinessProbe.path }}
+              port: {{ .Values.env.targetPort }}
+          {{- end }}
+          {{- if .Values.resources.enabled }}
+          resources:
+            {{- toYaml .Values.resources.value | nindent 12 }}
+          {{- end }}
+        {{- if .Values.sidecars }}
+        {{ tpl (toYaml .Values.sidecars) . | nindent 8 }}
+        {{- end }}
       volumes:
+        - name: nginx-config
+          configMap:
+            name: 'nginx-extra-configmap'
+        {{- if .Values.caSecretName }}
+        - name: root-ca
+          secret:
+            secretName: {{ .Values.caSecretName }}
+        {{- end }}
+        {{- if .Values.extraVolumes -}}
+          {{ tpl (toYaml .Values.extraVolumes) . | nindent 8 }}
+        {{- end }}
         {{- if eq .Values.cli.command "append" }}
         - name: config-schema
           configMap:

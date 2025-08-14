@@ -1,7 +1,7 @@
 import { inject, injectable } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
-import qs from 'qs';
-import { AxiosInstance } from 'axios';
+import type { Logger } from '@map-colonies/js-logger';
+import { stringify } from 'qs';
+import type { AxiosInstance } from 'axios';
 import { SERVICES } from '../common/constants';
 import { AxiosRequestArgsWithoutData, BaseClient, HttpResponse } from './baseClient';
 
@@ -25,7 +25,10 @@ export interface DumpMetadataResponse {
 
 @injectable()
 export class DumpClient extends BaseClient {
-  public constructor(@inject(SERVICES.LOGGER) logger: Logger, @inject(SERVICES.HTTP_CLIENT) private readonly httpClient: AxiosInstance) {
+  public constructor(
+    @inject(SERVICES.LOGGER) logger: Logger,
+    @inject(SERVICES.HTTP_CLIENT) private readonly httpClient: AxiosInstance
+  ) {
     super(logger);
   }
 
@@ -36,7 +39,7 @@ export class DumpClient extends BaseClient {
     return this.invokeHttp<DumpMetadataResponse[], undefined, AxiosRequestArgsWithoutData, typeof funcRef>(funcRef, DUMP_METADATA_ENDPOINT, {
       baseURL: dumpServerUrl,
       params,
-      paramsSerializer: (params: DumpMetadataRequestParams) => qs.stringify(params, { indices: false }),
+      paramsSerializer: (params: DumpMetadataRequestParams) => stringify(params, { indices: false }),
     });
   }
 

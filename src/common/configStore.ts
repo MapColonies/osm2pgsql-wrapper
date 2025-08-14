@@ -1,4 +1,4 @@
-import Lodash from 'lodash';
+import { get, set } from 'lodash';
 import { NOT_FOUND_INDEX } from './constants';
 import { IConfig } from './interfaces';
 
@@ -6,7 +6,7 @@ export class ConfigStore implements IConfig {
   private readonly store: Record<string, unknown> = {};
 
   public get<T>(key: string): T {
-    return Lodash.get(this.store, key) as T;
+    return get(this.store, key) as T;
   }
 
   public has(key: string): boolean {
@@ -14,6 +14,6 @@ export class ConfigStore implements IConfig {
   }
 
   public set(key: string, value: unknown): void {
-    Lodash.set(this.store, key, value);
+    set(this.store, key, value);
   }
 }

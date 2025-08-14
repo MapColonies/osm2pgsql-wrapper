@@ -1,9 +1,9 @@
-import { Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '../common/constants';
 import { Osm2pgsqlError, OsmiumError } from '../common/errors';
 import { LogLevel } from '../common/types';
-import { IConfig, ILogger, Osm2pgsqlConfig, OsmiumConfig } from '../common/interfaces';
+import type { IConfig, ILogger, Osm2pgsqlConfig, OsmiumConfig } from '../common/interfaces';
 import { spawnChild } from './spawner';
 
 type Executable = 'osm2pgsql' | 'osmium';
@@ -12,7 +12,10 @@ type Executable = 'osm2pgsql' | 'osmium';
 export class OsmCommandRunner {
   private readonly globalCommandArgs: Record<Executable, string[]> = { osm2pgsql: [], osmium: [] };
 
-  public constructor(@inject(SERVICES.LOGGER) private readonly logger: Logger, @inject(SERVICES.CONFIG) private readonly config: IConfig) {
+  public constructor(
+    @inject(SERVICES.LOGGER) private readonly logger: Logger,
+    @inject(SERVICES.CONFIG) private readonly config: IConfig
+  ) {
     this.processConfig(config);
   }
 
@@ -82,6 +85,9 @@ export class OsmCommandRunner {
 
     if (osm2pgsqlConfig.slim !== undefined && osm2pgsqlConfig.slim) {
       osm2pgsqlArgs.push('--slim');
+    }
+    if (osm2pgsqlConfig.extraAttributes) {
+      osm2pgsqlArgs.push('--extra-attributes');
     }
     osm2pgsqlArgs.push(`--cache=${osm2pgsqlConfig.cache}`);
     osm2pgsqlArgs.push(`--number-processes=${osm2pgsqlConfig.processes}`);

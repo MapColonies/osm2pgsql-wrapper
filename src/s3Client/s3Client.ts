@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */ // s3-client object commands arguments
 import { inject, Lifecycle, scoped } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
 import {
   GetObjectCommand,
   HeadBucketCommand,
@@ -13,7 +13,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { SERVICES } from '../common/constants';
 import { S3Error } from '../common/errors';
-import { IConfig } from '../common/interfaces';
+import type { IConfig } from '../common/interfaces';
 
 type HeadCommandType = 'bucket' | 'object';
 

@@ -1,10 +1,8 @@
-{{- $releaseName := .Release.Name -}}
-{{- $chartName := include "osm2pgsql-wrapper.name" . -}}
 {{- if .Values.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ $releaseName }}-{{ $chartName }}-command-options-configmap
+  name: {{ printf "%s-command-options-configmap" (include "osm2pgsql-wrapper.fullname" .) }}
 data:
   {{- with .Values.s3 }}
   S3_ENDPOINT: {{ printf "%s://%s:%v/" .protocol .host .port | quote }}
@@ -30,5 +28,6 @@ data:
   DUMP_SOURCE_TYPE: {{ .Values.cli.create.dumpSourceType | quote }}
   DUMP_SOURCE: {{ .Values.cli.create.dumpSource | quote }}
   S3_LUA_SCRIPT_KEY: {{ .Values.cli.create.s3LuaScriptKey | quote }}
+  STATE_OVERRIDE: {{ .Values.cli.create.stateOverride | quote }}
   {{- end }}
 {{- end -}}

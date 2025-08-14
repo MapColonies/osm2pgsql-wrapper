@@ -3,12 +3,14 @@ import { Logger } from '@map-colonies/js-logger';
 import { FactoryFunction } from 'tsyringe';
 import { StatefulMediator } from '@map-colonies/arstotzka-mediator';
 import { ActionStatus } from '@map-colonies/arstotzka-common';
-import { ArstotzkaConfig } from '../../../common/interfaces';
+import { ConfigType } from '@src/common/config';
+import { ArstotzkaConfig, MdrConfig } from '../../../common/interfaces';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../../common/constants';
 import { ErrorWithExitCode } from '../../../common/errors';
 import { dumpSourceCheck } from '../../checks';
 import { ValidationResponse } from '../../../validation/validator';
+import { IMdrClient, MdrClient } from '../../../httpClient/mdrClient';
 import { CreateManager } from './createManager';
 import { command, describe, CREATE_MANAGER_FACTORY, DumpSourceType } from './constants';
 
@@ -21,6 +23,8 @@ export interface CreateArguments extends GlobalArguments {
 
 export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments, CreateArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
+
+  const config = dependencyContainer.resolve<ConfigType>(SERVICES.CONFIG);
 
   const builder = (args: Argv<GlobalArguments>): Argv<CreateArguments> => {
     args
@@ -66,6 +70,12 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       mediator = new StatefulMediator({ ...arstotzkaConfig.mediator, serviceId: arstotzkaConfig.serviceId, logger });
     }
 
+    const mdrConfig = config.get('mdr') as MdrConfig;
+    let mdrClient: IMdrClient | undefined;
+    if (mdrConfig.enabled) {
+      mdrClient = new MdrClient({ logger: logger.child({ component: 'mdr' }), ...mdrConfig.client });
+    }
+
     const manager = dependencyContainer.resolve<CreateManager>(CREATE_MANAGER_FACTORY);
 
     try {
@@ -81,6 +91,11 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       await mediator?.removeLock();
 
       await manager.create(s3ProjectId, s3LuaScriptKey, localDump);
+
+      if (mdrClient) {
+        const { latest } = await mdrClient.getStatus();
+        await mdrClient.postEnrollment({ from: 0, to: latest ?? 0, isFull: true, state: localDump.sequenceNumber });
+      }
 
       await mediator?.updateAction({ status: ActionStatus.COMPLETED });
 
@@ -107,7 +122,7 @@ export const createCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     if (!validationResponse.isValid || validationResponse.content === undefined) {
       const { errors } = validationResponse;
       logger.error({ err: errors, msg: 'argument validation failure', command });
-      throw new Error(errors);
+      throw new Error('argument validation failure');
     }
   };
 

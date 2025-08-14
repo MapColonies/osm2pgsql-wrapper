@@ -1,12 +1,15 @@
 import { inject, injectable } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
-import { AxiosInstance } from 'axios';
+import type { Logger } from '@map-colonies/js-logger';
+import type { AxiosInstance } from 'axios';
 import { SERVICES, STATE_FILE } from '../common/constants';
 import { AxiosRequestArgsWithoutData, BaseClient, HttpResponse } from './baseClient';
 
 @injectable()
 export class ReplicationClient extends BaseClient {
-  public constructor(@inject(SERVICES.LOGGER) logger: Logger, @inject(SERVICES.HTTP_CLIENT) private readonly httpClient: AxiosInstance) {
+  public constructor(
+    @inject(SERVICES.LOGGER) logger: Logger,
+    @inject(SERVICES.HTTP_CLIENT) private readonly httpClient: AxiosInstance
+  ) {
     super(logger);
   }
 

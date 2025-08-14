@@ -4,7 +4,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: osm2pgsql-wrapper
-  description: A wrapper for osm2pgsql supporting job / cronjob functionality for creating and appending data.
+  description: A wrapper for osm2pgsql supporting job / deployment functionality for creating and appending data.
   tags:
     - osm2pgsql
     - typescript

@@ -1,5 +1,5 @@
 import { BoundingBox } from '@map-colonies/tile-calc';
-import { Feature } from '@turf/turf';
+import type { Feature } from 'geojson';
 import { GlobalArguments } from '../../cliBuilderFactory';
 
 interface BaseTilesRequest {

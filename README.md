@@ -1,6 +1,6 @@
 # osm2pgsql-wrapper
 
-A wrapper for osm2pgsql supporting job / cronjob functionality for creating and appending data
+A wrapper for osm2pgsql supporting job / deployment functionality for creating and appending data
 
 ## Usage
 
@@ -114,12 +114,12 @@ Postgres authentication should be defined by the following env varaibles: `PGHOS
 ## Building and Running
 
 ### Build argument variables
-- `NODE_VERSION` - the version of node. currently supports 14 and 16, defaults to 16
+- `NODE_VERSION` - the version of node. currently supports 20 or higher, defaults to 20
 - `OSM2PGSQL_REPOSITORY` - the repository of osm2pgsql to be built, defaults to [MapColonies forked osm2pgsql](https://github.com/MapColonies/osm2pgsql.git).
 - `OSM2PGSQL_COMMIT_SHA` - the commit SHA of osm2pgsql to be built.
-- `OSMIUM_TOOL_TAG` - the tag version of osm2pgsql to be built, defaults to v1.16.0.
-- `PROTOZERO_TAG` - the tag version of osm2pgsql to be built, defaults to v1.7.1.
-- `LIBOSMIUM_TAG` - the tag version of osm2pgsql to be built, defaults to v2.20.0.
+- `OSMIUM_TOOL_TAG` - the tag version of osm2pgsql to be built, defaults to v1.18.0.
+- `PROTOZERO_TAG` - the tag version of osm2pgsql to be built, defaults to v1.8.0.
+- `LIBOSMIUM_TAG` - the tag version of osm2pgsql to be built, defaults to v2.22.0.
 
 ### Building the container
 

@@ -1,6 +1,6 @@
 import { inject } from 'tsyringe';
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { Logger } from '@map-colonies/js-logger';
+import { type Logger } from '@map-colonies/js-logger';
 import { SERVICES } from '../common/constants';
 import { HttpUpstreamResponseError, HttpUpstreamUnavailableError } from '../common/errors';
 
@@ -27,7 +27,7 @@ export abstract class BaseClient {
   ): Promise<HttpResponse<R>> => {
     try {
       const response = await func(...args);
-      return { data: response.data, contentType: response.headers['content-type'], code: response.status };
+      return { data: response.data, contentType: response.headers['content-type'] as string, code: response.status };
     } catch (error) {
       const axiosError = error as AxiosError<E>;
       if (axiosError.response !== undefined) {

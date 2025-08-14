@@ -1,11 +1,11 @@
 import { createHash } from 'crypto';
-import { Logger } from '@map-colonies/js-logger';
-import PgBoss from 'pg-boss';
+import type { Logger } from '@map-colonies/js-logger';
+import pgBoss from 'pg-boss';
 import { inject, injectable } from 'tsyringe';
-import client from 'prom-client';
+import { Registry, Gauge } from 'prom-client';
 import { SERVICES } from '../common/constants';
 import { QueueError, RequestAlreadyInQueueError } from '../common/errors';
-import { IConfig } from '../common/interfaces';
+import type { IConfig } from '../common/interfaces';
 import { QueueProvider } from './queueProvider';
 
 @injectable()
@@ -14,16 +14,16 @@ export class PgBossQueueProvider implements QueueProvider {
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    private readonly pgBoss: PgBoss,
+    @inject(SERVICES.PGBOSS) private readonly pgBoss: pgBoss,
     @inject(SERVICES.CONFIG_STORE) configStore: IConfig,
-    @inject(SERVICES.METRICS_REGISTRY) registry?: client.Registry
+    @inject(SERVICES.METRICS_REGISTRY) registry?: Registry
   ) {
     this.queueName = configStore.get<string>('queue.name');
 
     if (registry !== undefined) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const self = this;
-      new client.Gauge({
+      new Gauge({
         name: 'osm2pgsql_wrapper_requests_queue_current_count',
         help: 'The number of jobs currently in the requests queue',
         async collect(): Promise<void> {

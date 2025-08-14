@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs';
-import PgBoss, { DatabaseOptions } from 'pg-boss';
+import pgBoss, { DatabaseOptions } from 'pg-boss';
 import { CLI_NAME } from '../common/constants';
 
 const createDatabaseOptions = (dbConfig: DbConfig): DatabaseOptions => {
@@ -19,7 +19,7 @@ export type DbConfig = {
   certSecretName: string;
 } & DatabaseOptions;
 
-export const pgBossFactory = (dbConfig: DbConfig): PgBoss => {
+export const pgBossFactory = (dbConfig: DbConfig): pgBoss => {
   const databaseOptions = createDatabaseOptions(dbConfig);
-  return new PgBoss({ ...databaseOptions, noScheduling: true, noSupervisor: true });
+  return new pgBoss({ ...databaseOptions, noScheduling: true, noSupervisor: true });
 };

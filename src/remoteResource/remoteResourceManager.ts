@@ -1,8 +1,9 @@
 import { join } from 'path';
 import fsPromises from 'fs/promises';
-import { Feature, Geometry } from '@turf/turf';
+import type { Feature, Geometry } from 'geojson';
 import geojsonValidator from '@turf/boolean-valid';
 import { Logger } from '@map-colonies/js-logger';
+import { BBox } from '@common/types';
 import { DATA_DIR } from '../common/constants';
 import { createDirectory, getFileDirectory } from '../common/util';
 import { RemoteResource } from '../common/interfaces';
@@ -20,7 +21,10 @@ type FetchedRemoteResource = RemoteResource & {
 export class RemoteResourceManager {
   private readonly resourceMap: Map<string, FetchedRemoteResource> = new Map();
 
-  public constructor(private readonly logger: Logger, private readonly provider: IResourceProvider) {}
+  public constructor(
+    private readonly logger: Logger,
+    private readonly provider: IResourceProvider
+  ) {}
 
   public async load(resources: RemoteResource[]): Promise<void> {
     await this.getResourcesFromRemote(resources);
@@ -52,6 +56,7 @@ export class RemoteResourceManager {
         })
       );
     } catch (err) {
+      this.logger.error({ msg: 'failed to get remote resource', err });
       throw new RemoteResourceNotFound(`remote resource not found`);
     }
   }
@@ -59,7 +64,7 @@ export class RemoteResourceManager {
   private async processResources(): Promise<void> {
     this.logger.debug({ msg: 'processing resources', count: this.resourceMap.size });
 
-    for await (const [id, resource] of this.resourceMap) {
+    for (const [id, resource] of this.resourceMap) {
       if (resource.type === 'script') {
         const localScriptPath = join(DATA_DIR, id);
         await createDirectory(getFileDirectory(localScriptPath));
@@ -79,7 +84,7 @@ export class RemoteResourceManager {
       const bbox = JSON.parse(resource.content) as unknown;
       const res = ajvWrapper(bbox, BBOX_SCHEMA);
       if (res.isValid) {
-        resource.processedContent = getFilterByBboxFunc(res.content as number[]);
+        resource.processedContent = getFilterByBboxFunc(res.content as BBox);
         continue;
       }
 
