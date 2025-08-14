@@ -1,22 +1,25 @@
-import Ajv from 'ajv';
-import { JSONSchemaType } from 'ajv';
+import ajv, { AnySchemaObject, JSONSchemaType } from 'ajv';
 import * as ajvKeywords from 'ajv-keywords';
-import betterAjvErrors from 'better-ajv-errors';
+import { betterAjvErrors, ValidationError } from '@apideck/better-ajv-errors';
 
-const ajv = new Ajv({ $data: true, coerceTypes: true });
-ajvKeywords.default(ajv);
+const GENERAL_VALIDATION_ERROR = `invalid content`;
+
+const ajvInstance = new ajv({ $data: true, coerceTypes: true, allErrors: true });
+ajvKeywords.default(ajvInstance);
 
 export interface ValidationResponse<T> {
   isValid: boolean;
-  errors?: string;
+  errors?: ValidationError[] | string;
   content?: T;
 }
 
 export function ajvWrapper<T>(content: unknown, schema: JSONSchemaType<T>): ValidationResponse<T> {
-  const isValid = ajv.validate(schema, content);
+  const isValid = ajvInstance.validate(schema, content);
   if (!isValid) {
-    const generalError = `invalid content`;
-    const errors = ajv.errors === undefined || ajv.errors === null ? generalError : betterAjvErrors(schema, content, ajv.errors);
+    const errors =
+      ajvInstance.errors === undefined || ajvInstance.errors === null
+        ? GENERAL_VALIDATION_ERROR
+        : betterAjvErrors({ schema: schema as AnySchemaObject, data: content, errors: ajvInstance.errors });
     return { isValid, errors };
   }
 

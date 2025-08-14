@@ -20,8 +20,10 @@
       "env": {
         "NODE_ENV": "development",
         "LOG_PRETTY_PRINT_ENABLED": "true",
-        "TELEMETRY_TRACING_ENABLED": "false",
-        "TELEMETRY_TRACING_URL": "http://localhost:55681/v1/trace"
+        "TELEMETRY_TRACING_IS_ENABLED": "false",
+        "TELEMETRY_METRICS_ENABLED": "false",
+        "TELEMETRY_TRACING_URL": "http://localhost:55681/v1/trace",
+        "TELEMETRY_METRICS_URL": "http://localhost:55681/v1/metrics"
       }
     }
   ]

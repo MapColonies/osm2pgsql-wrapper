@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { inject } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
-import client from 'prom-client';
+import { type Logger } from '@map-colonies/js-logger';
+import { Registry, Histogram } from 'prom-client';
 import { DATA_DIR, DEFAULT_DUMP_NAME, DEFAULT_PROJECT_CREATION_STATE, METRICS_BUCKETS, SERVICES } from '../../../common/constants';
 import { streamToFs } from '../../../common/util';
 import { DumpClient, DumpMetadataResponse } from '../../../httpClient/dumpClient';
@@ -16,18 +16,18 @@ interface LocalDump {
 }
 
 export class CreateManager {
-  private readonly createDurationHistogram?: client.Histogram<'project' | 'script'>;
+  private readonly createDurationHistogram?: Histogram<'project' | 'script'>;
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     private readonly dumpClient: DumpClient,
     private readonly osmCommandRunner: OsmCommandRunner,
     private readonly remoteResourceManager: RemoteResourceManager,
-    @inject(SERVICES.METRICS_REGISTRY) registry?: client.Registry,
+    @inject(SERVICES.METRICS_REGISTRY) registry?: Registry,
     @inject(METRICS_BUCKETS) metricsBuckets?: number[]
   ) {
     if (registry !== undefined) {
-      this.createDurationHistogram = new client.Histogram({
+      this.createDurationHistogram = new Histogram({
         name: 'osm2pgsql_wrapper_create_duration_seconds',
         help: 'osm2pgsql-wrapper create duration in seconds',
         buckets: metricsBuckets,
@@ -85,7 +85,7 @@ export class CreateManager {
       throw new DumpServerEmptyResponseError(`received empty dumps response from dump-server`);
     }
 
-    return dumpServerResponse.data[0];
+    return dumpServerResponse.data[0] as DumpMetadataResponse;
   }
 
   private async getDumpFromRemoteToFs(url: string, name = DEFAULT_DUMP_NAME): Promise<string> {

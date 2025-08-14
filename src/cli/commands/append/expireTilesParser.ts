@@ -1,5 +1,5 @@
 import { BoundingBox } from '@map-colonies/tile-calc';
-import SphericalMercator from '@mapbox/sphericalmercator';
+import sphericalMercator from '@mapbox/sphericalmercator';
 import { Sort } from '../../../common/types';
 import { sortArrAlphabetically } from '../../../common/util';
 import { ExpireTilePostFilterFunc, ExpireTilePreFilterFunc, getFilterByZoomFunc } from './expireTilesFilters';
@@ -21,7 +21,7 @@ interface ParseExpireListOptions {
 const ASC_ORDER_NEXT_IN_RANGE_DIFF_VALUE = 1;
 const DESC_ORDER_NEXT_IN_RANGE_DIFF_VALUE = -1;
 
-const sphericalMercatorUtil = new SphericalMercator({});
+const sphericalMercatorUtil = new sphericalMercator({});
 
 export class ExpireTilesParser {
   private readonly preFilters: ExpireTilePreFilterFunc[];
@@ -76,15 +76,15 @@ export class ExpireTilesParser {
     }
 
     const index = this.sort === 'desc' ? 0 : sortedExpireList.length - 1;
-    const zoom = sortedExpireList[index].split('/')[0];
-    return parseInt(zoom);
+    const zoom = (sortedExpireList[index] as string).split('/')[0];
+    return parseInt(zoom as string);
   }
 
   private expireListToFilteredTiles(expireList: string[]): Tile[] {
     const tiles: Tile[] = [];
 
     expireList.forEach((expireTileLine) => {
-      const elements = expireTileLine.split('/');
+      const elements = expireTileLine.split('/') as [string, string, string];
 
       const currentZ = parseInt(elements[0]);
       const currentX = parseInt(elements[1]);
@@ -113,12 +113,13 @@ export class ExpireTilesParser {
       }
 
       const lastRangeIndex = tileRange.length - 1;
-      const lastTileInRangeIndex = tileRange[lastRangeIndex].length - 1;
-      const lastTile = tileRange[lastRangeIndex][lastTileInRangeIndex];
+      const lastRangeTiles = tileRange[lastRangeIndex] as Tile[];
+      const lastTileInRangeIndex = lastRangeTiles.length - 1;
+      const lastTile = lastRangeTiles[lastTileInRangeIndex] as Tile;
 
       const diff = this.sort === 'asc' ? ASC_ORDER_NEXT_IN_RANGE_DIFF_VALUE : DESC_ORDER_NEXT_IN_RANGE_DIFF_VALUE;
       if (tile.z === lastTile.z && tile.x === lastTile.x && tile.y === lastTile.y + diff) {
-        tileRange[lastRangeIndex].push(tile);
+        lastRangeTiles.push(tile);
         return;
       }
 
@@ -133,8 +134,8 @@ export class ExpireTilesParser {
       const bottomIndex = this.sort === 'desc' ? 0 : tileRange.length - 1;
       const topIndex = this.sort === 'desc' ? tileRange.length - 1 : 0;
 
-      const bottomTile = tileRange[bottomIndex];
-      const topTile = tileRange[topIndex];
+      const bottomTile = tileRange[bottomIndex] as Tile;
+      const topTile = tileRange[topIndex] as Tile;
 
       const { west, south } = bottomTile.bbox; // getting min longitude and min latitude from bottom of the range
       const { east, north } = topTile.bbox; // getting max longitude and max latitude from top of the range

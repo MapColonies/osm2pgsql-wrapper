@@ -2,15 +2,8 @@
 Expand the name of the chart.
 */}}
 {{- define "osm2pgsql-wrapper.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
-Returns the tag of the chart.
-*/}}
-{{- define "osm2pgsql-wrapper.tag" -}}
-{{- default (printf "v%s" .Chart.AppVersion) .Values.image.tag }}
-{{- end }}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
 
 {{/*
 Create a default fully qualified app name.
@@ -18,17 +11,17 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "osm2pgsql-wrapper.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
-{{- end }}
+{{- if .Values.fullnameOverride -}}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 
 {{/*
 Create chart name and version as used by the chart label.
@@ -41,12 +34,19 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "osm2pgsql-wrapper.labels" -}}
-osm2pgsql-wrapper.sh/chart: {{ include "osm2pgsql-wrapper.chart" . }}
+helm.sh/chart: {{ include "osm2pgsql-wrapper.chart" . }}
 {{ include "osm2pgsql-wrapper.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Returns the tag of the chart.
+*/}}
+{{- define "osm2pgsql-wrapper.tag" -}}
+{{- default (printf "v%s" .Chart.AppVersion) .Values.image.tag }}
 {{- end }}
 
 {{/*
@@ -86,9 +86,21 @@ Returns the cloud provider docker registry url from global if exists or from the
 */}}
 {{- define "osm2pgsql-wrapper.cloudProviderDockerRegistryUrl" -}}
 {{- if .Values.global.cloudProvider.dockerRegistryUrl }}
-    {{- .Values.global.cloudProvider.dockerRegistryUrl -}}
-{{- else if .Values.cloudProvider -}}
-    {{- .Values.cloudProvider.dockerRegistryUrl -}}
+    {{- printf "%s/" .Values.global.cloudProvider.dockerRegistryUrl -}}
+{{- else if .Values.cloudProvider.dockerRegistryUrl -}}
+    {{- printf "%s/" .Values.cloudProvider.dockerRegistryUrl -}}
+{{- else -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns the cloud provider image pull secret name from global if exists or from the chart's values
+*/}}
+{{- define "osm2pgsql-wrapper.cloudProviderImagePullSecretName" -}}
+{{- if .Values.global.cloudProvider.imagePullSecretName }}
+    {{- .Values.global.cloudProvider.imagePullSecretName -}}
+{{- else if .Values.cloudProvider.imagePullSecretName -}}
+    {{- .Values.cloudProvider.imagePullSecretName -}}
 {{- end -}}
 {{- end -}}
 
@@ -98,7 +110,7 @@ Returns the tracing url from global if exists or from the chart's values
 {{- define "osm2pgsql-wrapper.tracingUrl" -}}
 {{- if .Values.global.tracing.url }}
     {{- .Values.global.tracing.url -}}
-{{- else if .Values.env.tracing.url -}}
+{{- else if .Values.cloudProvider -}}
     {{- .Values.env.tracing.url -}}
 {{- end -}}
 {{- end -}}

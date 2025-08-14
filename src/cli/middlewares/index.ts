@@ -1,13 +1,12 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import PgBoss from 'pg-boss';
 import { DependencyContainer, Lifecycle } from 'tsyringe';
 import { Arguments, MiddlewareFunction } from 'yargs';
 import { CleanupRegistry } from '@map-colonies/cleanup-registry';
+import { ConfigType } from '@src/common/config';
 import { GlobalArguments } from '../cliBuilderFactory';
 import { AppendArguments } from '../commands/append/interfaces';
 import { ConfigStore } from '../../common/configStore';
 import { S3_REGION, SERVICES } from '../../common/constants';
-import { IConfig } from '../../common/interfaces';
 import { DbConfig, pgBossFactory } from '../../queue/pgBossFactory';
 import { QUEUE_PROVIDER_SYMBOL } from '../../queue/constants';
 import { PgBossQueueProvider } from '../../queue/pgBossQueueProvider';
@@ -70,11 +69,12 @@ export const uploadTargetsRegistrationMiddlewareFactory: RegisterOnContainerMidd
         const queueConfig = { name, minZoom, maxZoom };
         configStore.set('queue', queueConfig);
 
-        const config = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
-        const pgBossDbConfig = config.get<DbConfig>('pgboss');
+        const config = dependencyContainer.resolve<ConfigType>(SERVICES.CONFIG);
+        const pgBossDbConfig = config.get('pgboss') as DbConfig;
         const pgBossInstance = pgBossFactory(pgBossDbConfig);
+
         registerDependencies([
-          { token: PgBoss, provider: { useValue: pgBossInstance } },
+          { token: SERVICES.PGBOSS, provider: { useValue: pgBossInstance } },
           {
             token: QUEUE_PROVIDER_SYMBOL,
             provider: { useClass: PgBossQueueProvider },

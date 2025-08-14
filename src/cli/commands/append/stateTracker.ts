@@ -1,6 +1,6 @@
 import { join } from 'path';
 import { inject, singleton } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
 import { DATA_DIR, DEFAULT_SEQUENCE_NUMBER, SEQUENCE_NUMBER_REGEX, SERVICES, STATE_FILE, TIMESTAMP_REGEX } from '../../../common/constants';
 import { BucketDoesNotExistError, InvalidStateFileError } from '../../../common/errors';
 import { createDirectory, fetchSequenceNumber, streamToString } from '../../../common/util';
