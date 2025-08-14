@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.0.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v3.3.0...v4.0.0) (2025-08-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* mdr integration and deps update ([#28](https://github.com/MapColonies/osm2pgsql-wrapper/issues/28))
+
+### Features
+
+* mdr integration and deps update ([#28](https://github.com/MapColonies/osm2pgsql-wrapper/issues/28)) ([a927a00](https://github.com/MapColonies/osm2pgsql-wrapper/commit/a927a00675598cc62b9b7bb50b30b74e8086701e))
+
 ## [3.3.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v3.2.0...v3.3.0) (2024-08-13)
 
 
