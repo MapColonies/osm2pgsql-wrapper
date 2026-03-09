@@ -39,6 +39,7 @@ data:
   OSM2PGSQL_LOG_SQL_DATA: {{ .Values.env.osm2pgsql.log.sqlData | quote }}
   OSM2PGSQL_SCHEMA: {{ .Values.env.osm2pgsql.schema | quote }}
   OSM2PGSQL_MIDDLE_SCHEMA: {{ .Values.env.osm2pgsql.middleSchema | quote }}
+  OSM2PGSQL_PARALLEL_INDEXING: {{ .Values.env.osm2pgsql.parallelIndexing | quote }}
   OSMIUM_VERBOSE: {{ .Values.env.osmium.verbose | quote }}
   OSMIUM_PROGRESS: {{ .Values.env.osmium.progress | quote }}
   {{- if .Values.mdr.enabled }}

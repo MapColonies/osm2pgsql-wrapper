@@ -109,6 +109,7 @@ env:
     generateExpireOutput: true
     schema: public
     middleSchema: public
+    parallelIndexing: true
     log:
       level: info
       progress: true

@@ -60,6 +60,7 @@
     },
     "schema": "OSM2PGSQL_SCHEMA",
     "middleSchema": "OSM2PGSQL_MIDDLE_SCHEMA",
+    "parallelIndexing": "OSM2PGSQL_PARALLEL_INDEXING",
     "logger": {
       "level": "OSM2PGSQL_LOG_LEVEL",
       "progress": {

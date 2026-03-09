@@ -27,6 +27,7 @@
     "output": "flex",
     "generateExpireOutput": true,
     "extraAttributes": false,
+    "parallelIndexing": true,
     "logger": {
       "level": "info",
       "progress": true,
