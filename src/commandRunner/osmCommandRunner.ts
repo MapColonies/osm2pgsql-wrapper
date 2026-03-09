@@ -100,6 +100,9 @@ export class OsmCommandRunner {
     if (osm2pgsqlConfig.middleSchema !== undefined) {
       osm2pgsqlArgs.push(`--middle-schema=${osm2pgsqlConfig.middleSchema}`);
     }
+    if (!osm2pgsqlConfig.parallelIndexing) {
+      osm2pgsqlArgs.push('--disable-parallel-indexing');
+    }
     if (osm2pgsqlConfig.logger.sql) {
       osm2pgsqlArgs.push('--log-sql');
     }
