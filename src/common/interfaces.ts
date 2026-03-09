@@ -30,6 +30,7 @@ export interface Osm2pgsqlConfig {
   extraAttributes: boolean;
   schema?: string;
   middleSchema?: string;
+  parallelIndexing: boolean;
   logger: {
     level: LogLevel;
     progress: boolean;
