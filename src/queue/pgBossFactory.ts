@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
-import pgBoss, { DatabaseOptions } from 'pg-boss';
+import { PgBoss, type ConstructorOptions } from 'pg-boss';
 import { CLI_NAME } from '../common/constants';
 
-const createDatabaseOptions = (dbConfig: DbConfig): DatabaseOptions => {
+const createDatabaseOptions = (dbConfig: DbConfig): ConstructorOptions => {
   const { enableSslAuth, sslPaths, ...databaseOptions } = dbConfig;
   databaseOptions.application_name = CLI_NAME;
   if (enableSslAuth) {
@@ -17,9 +17,9 @@ export type DbConfig = {
   enableSslAuth: boolean;
   sslPaths: { ca: string; cert: string; key: string };
   certSecretName: string;
-} & DatabaseOptions;
+} & ConstructorOptions;
 
-export const pgBossFactory = (dbConfig: DbConfig): pgBoss => {
+export const pgBossFactory = (dbConfig: DbConfig): PgBoss => {
   const databaseOptions = createDatabaseOptions(dbConfig);
-  return new pgBoss({ ...databaseOptions, noScheduling: true, noSupervisor: true });
+  return new PgBoss({ ...databaseOptions });
 };
