@@ -54,19 +54,8 @@ jobs:
           path: ./reports/**
 
 
-  build_image:
-    name: Build Image
+  build_docker_image:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node: [24]
-
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v4
-
-      - name: build Docker image
-        run: docker build -t test-build:latest --build-arg NODE_VERSION .
-        env:
-          NODE_VERSION: ${{ matrix.node }}
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6
