@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        node: [20.x, 22.x]
+        node: [24.x]
 
     steps:
       - name: Check out Git repository
@@ -34,7 +34,7 @@ jobs:
 
     strategy:
       matrix:
-        node: [20.x, 22.x]
+        node: [24.x]
 
     steps:
       - name: Check out Git repository
@@ -60,7 +60,7 @@ jobs:
 
     strategy:
       matrix:
-        node: [20, 22]
+        node: [24]
 
     steps:
       - name: Check out Git repository
