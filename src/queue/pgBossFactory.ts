@@ -10,6 +10,7 @@ const createDatabaseOptions = (dbConfig: DbConfig): ConstructorOptions => {
     const [ca, cert, key] = [readFileSync(sslPaths.ca), readFileSync(sslPaths.cert), readFileSync(sslPaths.key)];
     databaseOptions.ssl = { key, cert, ca };
   }
+
   return databaseOptions;
 };
 
@@ -21,5 +22,5 @@ export type DbConfig = {
 
 export const pgBossFactory = (dbConfig: DbConfig): PgBoss => {
   const databaseOptions = createDatabaseOptions(dbConfig);
-  return new PgBoss({ ...databaseOptions });
+  return new PgBoss({ ...databaseOptions, schedule: false, supervise: false });
 };
