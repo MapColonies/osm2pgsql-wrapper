@@ -1,6 +1,6 @@
 ARG NODE_VERSION=20
 
-FROM ubuntu:20.04 as build
+FROM ubuntu:20.04 AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 ARG OSM2PGSQL_REPOSITORY=https://github.com/MapColonies/osm2pgsql.git
@@ -50,7 +50,7 @@ RUN git clone -b ${OSMIUM_TOOL_TAG} --single-branch https://github.com/osmcode/o
   cmake -D WITH_LUAJIT=ON .. && \
   make
 
-FROM node:${NODE_VERSION} as buildApp
+FROM node:${NODE_VERSION} AS buildapp
 
 WORKDIR /tmp/buildApp
 
@@ -61,14 +61,14 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM ubuntu:20.04 as production
+FROM ubuntu:20.04 AS production
 
 ENV NODE_ENV=production
 ENV DEBIAN_FRONTEND=noninteractive
-ENV workdir /app
+ENV WORKDIR=/app
 ARG NODE_VERSION
 
-WORKDIR ${workdir}
+WORKDIR ${WORKDIR}
 
 COPY --from=build /osm2pgsql/build /osm2pgsql
 COPY --from=build /osmium-tool/build /osmium-tool/build
