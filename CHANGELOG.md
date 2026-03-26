@@ -2,13 +2,6 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [4.1.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v4.0.0...v4.1.0) (2026-03-09)
-
-
-### Features
-
-* optionally set osm2pgsql parallel indexing flag ([#50](https://github.com/MapColonies/osm2pgsql-wrapper/issues/50)) ([b842fb8](https://github.com/MapColonies/osm2pgsql-wrapper/commit/b842fb8172590a1566f0ff18ef32944b3a9753f9))
-
 ## [4.0.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v3.3.0...v4.0.0) (2025-08-14)
 
 
