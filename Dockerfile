@@ -1,4 +1,4 @@
-ARG NODE_VERSION=20
+ARG NODE_VERSION=24
 
 FROM ubuntu:20.04 AS build
 
@@ -88,7 +88,7 @@ COPY --chown=node:node --from=buildApp /tmp/buildApp/dist .
 COPY --chown=node:node ./config ./config
 COPY start.sh .
 
-RUN chgrp root ${workdir}/start.sh && chmod -R a+rwx ${workdir} && \
+RUN chgrp root ${WORKDIR}/start.sh && chmod -R a+rwx ${WORKDIR} && \
     mkdir /.postgresql && chmod g+w /.postgresql
 
 # uncomment while developing to make sure the docker runs on openshift

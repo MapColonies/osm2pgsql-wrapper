@@ -4,8 +4,9 @@ const { compilerOptions } = require('../../../tsconfig.json');
 /** @type {import('jest').Config} */
 module.exports = {
   transform: {
-    '^.+\\.ts$': ['@swc/jest'],
+    '^.+\\.(t|j)s$': ['@swc/jest'],
   },
+  transformIgnorePatterns: ['node_modules/(?!(@turf|kdbush|supercluster|geokdbush)/)'],
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/' }),
   testMatch: ['<rootDir>/tests/unit/**/*.spec.ts'],
   coverageReporters: ['text', 'html'],
