@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.0.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v4.0.0...v5.0.0) (2026-03-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* pgboss 12 upgrade MAPCO-10250 ([#53](https://github.com/MapColonies/osm2pgsql-wrapper/issues/53))
+
+### Features
+
+* optionally set osm2pgsql parallel indexing flag ([#50](https://github.com/MapColonies/osm2pgsql-wrapper/issues/50)) ([b842fb8](https://github.com/MapColonies/osm2pgsql-wrapper/commit/b842fb8172590a1566f0ff18ef32944b3a9753f9))
+* pgboss 12 upgrade MAPCO-10250 ([#53](https://github.com/MapColonies/osm2pgsql-wrapper/issues/53)) ([4f23792](https://github.com/MapColonies/osm2pgsql-wrapper/commit/4f23792c68f6b7ae156e1bbcca6b3e30ca752f72))
+
+
+### Bug Fixes
+
+* fix docker warnings ([d3d2d8a](https://github.com/MapColonies/osm2pgsql-wrapper/commit/d3d2d8a0c5d6e2c78006f017f39c017dee936422))
+
 ## [4.0.0](https://github.com/MapColonies/osm2pgsql-wrapper/compare/v3.3.0...v4.0.0) (2025-08-14)
 
 
