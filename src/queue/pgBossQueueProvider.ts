@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import type { Logger } from '@map-colonies/js-logger';
-import pgBoss from 'pg-boss';
+import { type PgBoss } from 'pg-boss';
 import { inject, injectable } from 'tsyringe';
 import { Registry, Gauge } from 'prom-client';
 import { SERVICES } from '../common/constants';
@@ -14,7 +14,7 @@ export class PgBossQueueProvider implements QueueProvider {
 
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(SERVICES.PGBOSS) private readonly pgBoss: pgBoss,
+    @inject(SERVICES.PGBOSS) private readonly pgBoss: PgBoss,
     @inject(SERVICES.CONFIG_STORE) configStore: IConfig,
     @inject(SERVICES.METRICS_REGISTRY) registry?: Registry
   ) {
@@ -27,8 +27,8 @@ export class PgBossQueueProvider implements QueueProvider {
         name: 'osm2pgsql_wrapper_requests_queue_current_count',
         help: 'The number of jobs currently in the requests queue',
         async collect(): Promise<void> {
-          const currentQueueSize = await self.pgBoss.getQueueSize(self.queueName);
-          this.set(currentQueueSize);
+          const { totalCount } = await self.pgBoss.getQueueStats(self.queueName);
+          this.set(totalCount);
         },
         registers: [registry],
       });
@@ -67,8 +67,7 @@ export class PgBossQueueProvider implements QueueProvider {
     const hash = createHash('md5');
     hash.update(JSON.stringify(payload));
     try {
-      const response = await this.pgBoss.sendOnce(this.queueName, payload, {}, hash.digest('hex'));
-
+      const response = await this.pgBoss.send(this.queueName, payload, { singletonKey: hash.digest('hex') });
       if (response === null) {
         throw new RequestAlreadyInQueueError(`request already in queue: ${this.queueName}`);
       }
