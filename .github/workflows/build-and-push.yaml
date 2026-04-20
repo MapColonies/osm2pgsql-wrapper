@@ -25,7 +25,7 @@ jobs:
       scope: vector
 
   build_and_push_helm:
-    uses: MapColonies/shared-workflows/.github/workflows/build-and-push-helm.yaml@v4
+    uses: MapColonies/shared-workflows/.github/workflows/build-and-push-helm.yaml@v5
     secrets: inherit
     with:
       scope: vector
