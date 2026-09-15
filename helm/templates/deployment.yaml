@@ -129,9 +129,11 @@ spec:
         {{ tpl (toYaml .Values.sidecars) . | nindent 8 }}
         {{- end }}
       volumes:
-        - name: nginx-config
-          configMap:
-            name: 'nginx-extra-configmap'
+        # NOTE: this chart used to define an unconditional `nginx-config` volume backed by
+        # a ConfigMap named 'nginx-extra-configmap'. Nothing ever mounted it, but a
+        # non-optional configMap volume still has to resolve, so on any cluster without
+        # that ConfigMap the pod never started -- it sat in ContainerCreating with
+        # `FailedMount: configmap "nginx-extra-configmap" not found`. Removed.
         {{- if .Values.caSecretName }}
         - name: root-ca
           secret:
