@@ -1,6 +1,6 @@
 {
   "name": "osm2pgsql-wrapper",
-  "version": "5.0.0",
+  "version": "6.1.0-rc1",
   "description": "wrapped osm2pgsql for creating and appending osm data into vector ecosystem",
   "main": "./src/index.ts",
   "scripts": {
