@@ -37,24 +37,6 @@ spec:
       {{- end }}
     spec:
       restartPolicy: {{ .Values.job.restartPolicy }}
-      {{- if and (eq .Values.cli.command "create") (eq .Values.cli.create.dumpSourceType "local-file") }}
-      # loadDump() (createManager.ts) only knows local-file/remote-url/dump-server -- there
-      # is no S3 case, so the app itself cannot pull the pbf out of a bucket. This
-      # initContainer does it instead: fetch from MinIO into a volume shared with the main
-      # container, at the exact path cli.create.dumpSource points "local-file" at.
-      initContainers:
-        - name: fetch-dump
-          image: {{ .Values.cli.create.mcImage }}
-          command:
-            - sh
-            - -c
-            - |
-              mc alias set src {{ .Values.s3.protocol }}://{{ .Values.s3.host }}:{{ .Values.s3.port }} {{ .Values.s3.accessKey }} {{ .Values.s3.secretKey }} >/dev/null
-              mc cp src/{{ .Values.s3.bucketName }}/{{ .Values.cli.create.s3DumpKey }} {{ .Values.cli.create.dumpSource }}
-          volumeMounts:
-            - name: dump-data
-              mountPath: {{ dir .Values.cli.create.dumpSource }}
-      {{- end }}
       containers:
         - name: {{ $releaseName }}-{{ $chartName }}-deployment
           {{- with .Values.image }}
@@ -67,10 +49,6 @@ spec:
           {{- if eq .Values.cli.command "append" }}
             - name: config-schema
               mountPath: {{ .Values.cli.append.config.mountPath }}
-          {{- end }}
-          {{- if and (eq .Values.cli.command "create") (eq .Values.cli.create.dumpSourceType "local-file") }}
-            - name: dump-data
-              mountPath: {{ dir .Values.cli.create.dumpSource }}
           {{- end }}
           {{- if .Values.postgres.sslAuth.enabled }}
             - name: postgres-cert-conf
@@ -139,10 +117,6 @@ spec:
         - name: config-schema
           configMap:
             name: {{ $releaseName }}-{{ $chartName }}-schema-configmap
-        {{- end }}
-        {{- if and (eq .Values.cli.command "create") (eq .Values.cli.create.dumpSourceType "local-file") }}
-        - name: dump-data
-          emptyDir: {}
         {{- end }}
         {{- if .Values.postgres.sslAuth.enabled }}
         - name: postgres-cert-conf

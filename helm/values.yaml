@@ -207,31 +207,11 @@ cli:
       minZoom: 1
       maxZoom: 18
   create:
-    # local-file, not remote-url: createManager.ts's loadDump() has no S3 case, only
-    # local-file/remote-url/dump-server, so the wrapper itself can't pull the pbf out of a
-    # bucket -- remote-url downloaded straight from geofabrik.de on every run instead,
-    # an external dependency this cluster doesn't otherwise have (script.lua and state.txt
-    # both live in MinIO). templates/job.yaml's initContainer below closes that gap: it
-    # fetches the pbf from MinIO into a shared emptyDir at this same path, so by the time
-    # the main container starts, "local-file" just reads what's already on disk.
-    dumpSourceType: local-file # local-file, remote-url or dump-server
-    dumpSource: /tmp/dump/andorra-latest.osm.pbf
-    # Where the initContainer copies the pbf from -- the real dump checked into this repo
-    # at example/andorra-latest.osm.pbf, uploaded to MinIO under the project's own prefix
-    # (see example/README.md for the full andorra example this is built from):
-    #   kubectl run mc-seed --rm -i --restart=Never --image=quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z \
-    #     --command -- sh -c 'mc alias set l http://minio:9000 minioadmin minioadmin123 >/dev/null &&
-    #       cat > /tmp/f && mc pipe l/osm2pgsql/osm-demo/andorra-latest.osm.pbf < /tmp/f' \
-    #     < osm2pgsql-wrapper/example/andorra-latest.osm.pbf
-    s3DumpKey: osm-demo/andorra-latest.osm.pbf
-    # Pinned for the same reason as the minio chart (see main README's "note on MinIO
-    # images"): plain `minio/mc` on Docker Hub now requires a login.
-    mcImage: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
-    # example/andorra/simple.lua ("representing the whole project style", per
-    # example/README.md) uploaded to osm-demo/andorra/simple.lua -- NOT the flat
-    # osm-demo/script.lua key from the earlier Monaco setup (that key is left in place,
-    # byte-identical by coincidence, but this now points at the real uploaded copy).
-    s3LuaScriptKey: andorra/simple.lua
+    dumpSourceType: remote-url # local-file, remote-url or dump-server
+    # Monaco is ~700KB and imports in seconds -- enough to prove the whole path end to end.
+    dumpSource: 'https://download.geofabrik.de/europe/monaco-latest.osm.pbf'
+    # Resolved as <s3.projectId>/<this>, i.e. osm-demo/script.lua in the osm2pgsql bucket.
+    s3LuaScriptKey: script.lua
     # Left unset deliberately. command-options-configmap.yaml renders STATE_OVERRIDE
     # unconditionally, and yargs coerces the resulting "" to 0 rather than undefined, so
     # the project state lands on 0 instead of DEFAULT_PROJECT_CREATION_STATE (1). Set a
@@ -245,16 +225,8 @@ mdr:
     timeout: 10000
 
 arstotzka:
-  # arstotzka (actiony/locky/registry) is now deployed on this cluster -- see main
-  # README's "arstotzka: now deployed" section. This is the "consumer" leg of the
-  # osmdbt -> osm2pg-rendering pipeline seeded by arstotzka-bootstrap/namespace-seeder.json.
-  enabled: true
-  # registry.service.id for the "osm2pg-rendering" service (parallelism: replaceable,
-  # type: consumer, parent: osmdbt), seeded by the arstotzka-bootstrap Job -- not a value
-  # you can pick, it's whatever UUID postgres assigned on insert:
-  #   kubectl exec osm-render-0 -- psql -U postgres -d arstotzka \
-  #     -c "select id from registry.service where name = 'osm2pg-rendering'"
-  serviceId: 753c5645-2927-4f49-9e1c-816e969ef493
+  enabled: false
+  serviceId: id
   networkCM: arstotzka-network-configmap
   mediator:
     timeout: 10000
