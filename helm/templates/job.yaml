@@ -37,15 +37,12 @@ spec:
       {{- end }}
     spec:
       restartPolicy: {{ .Values.job.restartPolicy }}
-      {{- $needsFetchDump := and (eq .Values.cli.command "create") (eq .Values.cli.create.dumpSourceType "local-file") }}
-      {{- $needsPrimaryKeyFix := and (eq .Values.cli.command "create") (gt (len .Values.cli.create.primaryKeys) 0) }}
-      {{- if or $needsFetchDump $needsPrimaryKeyFix }}
+      {{- if and (eq .Values.cli.command "create") (eq .Values.cli.create.dumpSourceType "local-file") }}
+      # loadDump() (createManager.ts) only knows local-file/remote-url/dump-server -- there
+      # is no S3 case, so the app itself cannot pull the pbf out of a bucket. This
+      # initContainer does it instead: fetch from MinIO into a volume shared with the main
+      # container, at the exact path cli.create.dumpSource points "local-file" at.
       initContainers:
-        {{- if $needsFetchDump }}
-        # loadDump() (createManager.ts) only knows local-file/remote-url/dump-server --
-        # there is no S3 case, so the app itself cannot pull the pbf out of a bucket. This
-        # initContainer does it instead: fetch from MinIO into a volume shared with the
-        # main container, at the exact path cli.create.dumpSource points "local-file" at.
         - name: fetch-dump
           image: {{ .Values.cli.create.mcImage }}
           command:
@@ -57,50 +54,73 @@ spec:
           volumeMounts:
             - name: dump-data
               mountPath: {{ dir .Values.cli.create.dumpSource }}
-        {{- end }}
-        {{- if $needsPrimaryKeyFix }}
-        # Runs the actual `create` step as an initContainer instead of the main container --
-        # see the primary-keys container below (in `containers:`) for why.
-        {{- include "osm2pgsql-wrapper.appContainer" . | nindent 8 }}
-        {{- end }}
       {{- end }}
       containers:
-        {{- if $needsPrimaryKeyFix }}
-        # osm2pgsql's flex output (see cli.create.primaryKeys' own comment in values.yaml)
-        # creates these tables with no primary key, which makes every one of them
-        # read-only over WFS -- see main README's "schema fix: all four tables were
-        # read-only over WFS". `create` drops and recreates the tables from scratch every
-        # run, so the fix has to be re-applied every run too, right after -- not a one-off
-        # migration. This has to be the Job's main container, not a step tacked onto the
-        # app container's own entrypoint (which is the compiled app binary, not a shell),
-        # and it has to run after `create` finishes, which is exactly what moving the app
-        # container up into `initContainers:` above buys: Kubernetes runs initContainers
-        # to completion, in order, before any container in `containers:` starts.
-        - name: {{ $releaseName }}-{{ $chartName }}-primary-keys
-          image: {{ .Values.cli.create.primaryKeysImage }}
+        - name: {{ $releaseName }}-{{ $chartName }}-deployment
+          {{- with .Values.image }}
+          image: {{ $cloudProviderDockerRegistryUrl }}{{ .repository }}:{{ $imageTag }}
+          imagePullPolicy: {{ .pullPolicy | default "IfNotPresent" }}
+          {{- end }}
+          args:
+            - {{ .Values.cli.command }}
+          volumeMounts:
+          {{- if eq .Values.cli.command "append" }}
+            - name: config-schema
+              mountPath: {{ .Values.cli.append.config.mountPath }}
+          {{- end }}
+          {{- if and (eq .Values.cli.command "create") (eq .Values.cli.create.dumpSourceType "local-file") }}
+            - name: dump-data
+              mountPath: {{ dir .Values.cli.create.dumpSource }}
+          {{- end }}
+          {{- if .Values.postgres.sslAuth.enabled }}
+            - name: postgres-cert-conf
+              mountPath: {{ .Values.postgres.sslAuth.mountPath }}
+          {{- end }}
+          {{- if .Values.pgboss.sslAuth.enabled }}
+            - name: pgboss-cert-conf
+              mountPath: {{ .Values.pgboss.sslAuth.mountPath }}
+          {{- end }}
+          {{- if .Values.caSecretName }}
+            - mountPath: {{ printf "%s/%s" .Values.caPath .Values.caKey | quote }}
+              name: root-ca
+              subPath: {{ quote .Values.caKey }}
+            {{- end }}
+            {{- if .Values.extraVolumeMounts -}}
+              {{ toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
           env:
-            - name: PGHOST
-              value: {{ .Values.postgres.host | quote }}
-            - name: PGPORT
-              value: {{ .Values.postgres.port | default 5432 | quote }}
-            - name: PGDATABASE
-              value: {{ .Values.postgres.database | quote }}
-            - name: PGUSER
-              value: {{ .Values.postgres.username | quote }}
-            - name: PGPASSWORD
-              value: {{ .Values.postgres.password | quote }}
-          command:
-            - sh
-            - -c
-            - |
-              set -eu
-              {{- range .Values.cli.create.primaryKeys }}
-              echo "=== adding primary key: {{ .table }}({{ .column }}) ==="
-              psql -v ON_ERROR_STOP=1 -c "ALTER TABLE public.{{ .table }} ADD PRIMARY KEY ({{ .column }});"
-              {{- end }}
-        {{- else }}
-        {{- include "osm2pgsql-wrapper.appContainer" . | nindent 8 }}
-        {{- end }}
+            - name: SERVER_PORT
+              value: {{ .Values.env.targetPort | quote }}
+            {{- if .Values.caSecretName }}
+            - name: REQUESTS_CA_BUNDLE
+              value: {{ printf "%s/%s" .Values.caPath .Values.caKey | quote }}
+            - name: NODE_EXTRA_CA_CERTS
+              value: {{ printf "[%s/%s]" .Values.caPath .Values.caKey | quote }}
+            {{- end }}
+            {{- if .Values.extraEnvVars }}
+            {{- toYaml .Values.extraEnvVars | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ printf "%s-configmap" (include "osm2pgsql-wrapper.fullname" .) }}
+            - configMapRef:
+                name: {{ printf "%s-command-options-configmap" (include "osm2pgsql-wrapper.fullname" .) }}
+            - configMapRef:
+                name: {{ printf "%s-arstotzka-configmap" (include "osm2pgsql-wrapper.fullname" .) }}
+            {{- if and .Values.arstotzka.enabled .Values.arstotzka.networkCM }}
+            - configMapRef:
+                name: {{ .Values.arstotzka.networkCM }}
+            {{- end }}
+            - secretRef:
+                name: {{ printf "%s-secret" (include "osm2pgsql-wrapper.fullname" .) }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.env.targetPort }}
+              protocol: {{ .Values.env.protocol }}
+          {{- if .Values.resources.enabled }}
+          resources:
+            {{- toYaml .Values.resources.value | nindent 16 }}
+          {{- end }}
       volumes:
         # NOTE: this chart used to define an unconditional `nginx-config` volume backed by
         # a ConfigMap named 'nginx-extra-configmap'. Nothing ever mounted it, but a

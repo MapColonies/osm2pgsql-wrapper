@@ -238,31 +238,6 @@ cli:
     # number here if that distinction matters to you.
     # stateOverride:
 
-    # osm2pgsql's flex output (example/andorra/simple.lua's define_*_table calls) gives
-    # each table an id column but never a PRIMARY KEY constraint. Without one, GeoServer's
-    # JDBC layer can't build a FeatureId mapping and silently publishes the layer
-    # read-only over WFS -- see main README's "schema fix: all four tables were read-only
-    # over WFS" for how this was first found and fixed by hand. `create` drops and
-    # recreates every table listed here from scratch on every run (that's the whole point
-    # of `--create`), which would silently drop these primary keys again on the next
-    # reinstall/recreate -- so templates/job.yaml now re-applies them as a step that always
-    # runs right after `create` finishes (see that file for why it has to be structured as
-    # an extra container rather than tacked onto the app container itself). Each id column
-    # was confirmed unique (`count(*) = count(distinct id_column)`) before this was written;
-    # if you point this chart at a different lua script, re-check that before reusing it.
-    primaryKeys:
-      - table: pois
-        column: node_id
-      - table: restaurants
-        column: node_id
-      - table: ways
-        column: way_id
-      - table: polygons
-        column: area_id
-    # postgres:17-alpine matches osm-render's own Postgres major version (17.5) -- only
-    # used to run `psql` for the ALTER TABLE statements above, never to store anything.
-    primaryKeysImage: postgres:17-alpine
-
 mdr:
   enabled: false
   client:
