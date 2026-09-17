@@ -75,19 +75,15 @@ job:
   ttlSecondsAfterFinished: 60
   backoffLimit: 6
 
-# osm2pgsql is the memory consumer here, not node. The limit has to clear
-# `env.osm2pgsql.cache` below (its node-cache allocation, in MB) with room to spare or the
-# container is OOM killed partway through reading ways. The chart's shipped defaults paired
-# a 2500 MB cache with a 128Mi limit, which could never have run.
 resources:
   enabled: true
   value:
     limits:
-      cpu: "2"
-      memory: 3Gi
+      cpu: 100m
+      memory: 128Mi
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 100m
+      memory: 128Mi
 
 env:
   port: 8080
@@ -107,9 +103,7 @@ env:
   osm2pgsql:
     slim: true
     extraAttributes: false
-    # MB of RAM for the node cache. Sized for a small regional extract; raise this and the
-    # memory limit above together before importing anything larger.
-    cache: 500
+    cache: 2500
     processes: 2
     output: flex
     generateExpireOutput: true
@@ -125,27 +119,13 @@ env:
     verbose: false
     progress: false
 
-# The osm-render release (PostgreSQL + PostGIS) -- deliberately NOT osm-db.
-#
-# Two separate reasons:
-#  * osm-db holds the apidb, whose schema osm-web owns and migrates. osm2pgsql writes a
-#    derived rendering schema and would litter that database with its own tables.
-#  * osm-db has no PostGIS at all -- `SELECT * FROM pg_available_extensions` there lists
-#    hstore and nothing else -- and a flex script declaring `type = 'point'` needs
-#    GEOMETRY(Point, 4326) to exist.
-#
-#   kubectl get secret osm-render -o jsonpath='{.data.postgres-password}' | base64 -d
 postgres:
-  host: osm-render
+  host: localhost
   username: postgres
-  password: osm2pgsql
+  password: postgres
   database: osm2pgsql
   # port: 5432
   sslAuth:
-    # osm-render serves plain TCP inside the cluster; no client certificates involved.
-    # This block is NOT optional -- templates/secret.yaml and templates/configmap.yaml
-    # dereference .sslAuth.enabled unconditionally, so removing it fails the render with
-    # `nil pointer evaluating interface {}.enabled`.
     enabled: false
     secretName: secret-name
     mountPath: '/tmp/certs-postgres'
@@ -165,41 +145,25 @@ pgboss:
     keyFileName: postgresql.key
     caFileName: root.crt
 
-# The minio release. protocol/host/port are joined by
-# templates/command-options-configmap.yaml into S3_ENDPOINT as "{protocol}://{host}:{port}/".
-# The CLI's S3 client already sets forcePathStyle: true (src/cli/middlewares/index.ts),
-# which is what MinIO needs -- virtual-hosted style would try to resolve the bucket as a
-# hostname.
-#
-#   kubectl get secret minio -o jsonpath='{.data.root-password}' | base64 -d
 s3:
-  accessKey: minioadmin
-  secretKey: minioadmin123
+  accessKey: accessKey
+  secretKey: secret
   protocol: http
-  host: minio
+  host: localhost
   port: 9000
-  # Must already exist; the minio chart provisions it (see minio/values.yaml `buckets`).
   bucketName: osm2pgsql
-  # Used as the object key prefix: createManager does join(projectId, luaScriptKey), so
-  # the lua script has to live at <projectId>/<s3LuaScriptKey> inside the bucket.
-  projectId: osm-demo
-  # Only rendered into the ConfigMap for the `append` command; `create` leaves S3_ACL
-  # unset and the SDK omits the header entirely.
+  projectId: someId
   acl: private
 
 cli:
-  command: create # create or append
+  command: 'create' # create or append
   append:
-    # Not used while command is `create`, but the append templates dereference these, so
-    # the block has to stay for a later switch to append.
     replicationUrl: 'https://planet.openstreetmap.org/replication/minute'
     config:
       mountPath: '/tmp/config'
       fileName: 'config.json'
       path: 'config/append-config.json'
     uploadTargets:
-      # Enabling 'queue' is what makes the pgboss block below matter; with it off, pgboss
-      # is never contacted.
       enabled: false
       value: 's3,queue' # the upload targets separated with a comma with no space
     queue:
@@ -208,14 +172,8 @@ cli:
       maxZoom: 18
   create:
     dumpSourceType: remote-url # local-file, remote-url or dump-server
-    # Monaco is ~700KB and imports in seconds -- enough to prove the whole path end to end.
-    dumpSource: 'https://download.geofabrik.de/europe/monaco-latest.osm.pbf'
-    # Resolved as <s3.projectId>/<this>, i.e. osm-demo/script.lua in the osm2pgsql bucket.
+    dumpSource: 'https://remote-url.com'
     s3LuaScriptKey: script.lua
-    # Left unset deliberately. command-options-configmap.yaml renders STATE_OVERRIDE
-    # unconditionally, and yargs coerces the resulting "" to 0 rather than undefined, so
-    # the project state lands on 0 instead of DEFAULT_PROJECT_CREATION_STATE (1). Set a
-    # number here if that distinction matters to you.
     # stateOverride:
 
 mdr:
@@ -231,10 +189,7 @@ arstotzka:
   mediator:
     timeout: 10000
     retryStrategy:
-      # NOTE: upstream had this as `fasle`, which YAML reads as the string "fasle" --
-      # truthy in Helm, so the retry-strategy keys would have rendered against undefined
-      # values had arstotzka ever been enabled.
-      enabled: false
+      enabled: fasle
       # retries: 3
       # shouldResetTimeout: false
       # isExponential: false
