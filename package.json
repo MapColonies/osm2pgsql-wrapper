@@ -59,7 +59,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.0",
+    "@commitlint/cli": "^21.2.3",
     "@map-colonies/commitlint-config": "^1.1.1",
     "@map-colonies/eslint-config": "^6.0.0",
     "@map-colonies/prettier-config": "1.0.0",
