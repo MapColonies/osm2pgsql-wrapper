@@ -86,7 +86,7 @@
     "pretty-quick": "^4.1.1",
     "rimraf": "^6.0.1",
     "ts-jest": "^29.3.2",
-    "tsc-alias": "^1.8.11",
+    "tsc-alias": "^1.9.7",
     "typescript": "^5.8.2"
   }
 }
