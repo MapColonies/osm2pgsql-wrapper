@@ -85,7 +85,7 @@
     "prettier": "^3.5.3",
     "pretty-quick": "^4.1.1",
     "rimraf": "^6.0.1",
-    "ts-jest": "^29.3.2",
+    "ts-jest": "^29.4.14",
     "tsc-alias": "^1.8.11",
     "typescript": "^5.8.2"
   }
