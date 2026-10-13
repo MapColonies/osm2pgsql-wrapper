@@ -33,7 +33,7 @@
     "@map-colonies/arstotzka-common": "^1.0.0",
     "@map-colonies/arstotzka-mediator": "^1.0.0",
     "@map-colonies/cleanup-registry": "^1.1.0",
-    "@map-colonies/config": "^2.1.0",
+    "@map-colonies/config": "^4.0.1",
     "@map-colonies/js-logger": "^2.0.0",
     "@map-colonies/read-pkg": "^1.0.0",
     "@map-colonies/schemas": "^1.6.0",
