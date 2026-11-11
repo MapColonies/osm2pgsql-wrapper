@@ -1,10 +1,10 @@
 ARG NODE_VERSION=24
 
-FROM ubuntu:20.04 AS build
+FROM ubuntu:24.04 AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 ARG OSM2PGSQL_REPOSITORY=https://github.com/MapColonies/osm2pgsql.git
-ARG OSM2PGSQL_COMMIT_SHA=078884e01c1dc3c9c20c85cf9e57436b294e7e65
+ARG OSM2PGSQL_COMMIT_SHA=22e9d727e7ce2944700161617e6b451fbbfa05b8
 ARG OSMIUM_TOOL_TAG=v1.18.0
 ARG PROTOZERO_TAG=v1.8.0
 ARG LIBOSMIUM_TAG=v2.22.0
@@ -61,7 +61,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM ubuntu:20.04 AS production
+FROM ubuntu:24.04 AS production
 
 ENV NODE_ENV=production
 ENV DEBIAN_FRONTEND=noninteractive
