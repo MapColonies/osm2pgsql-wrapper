@@ -3,6 +3,8 @@ ARG NODE_VERSION=24
 FROM ubuntu:24.04 AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
+ARG OSM2PGSQL_REPOSITORY=https://github.com/MapColonies/osm2pgsql.git
+ARG OSM2PGSQL_COMMIT_SHA=22e9d727e7ce2944700161617e6b451fbbfa05b8
 ARG OSMIUM_TOOL_TAG=v1.18.0
 ARG PROTOZERO_TAG=v1.8.0
 ARG LIBOSMIUM_TAG=v2.22.0
@@ -30,10 +32,9 @@ RUN apt-get -y update && apt -y install \
   pyosmium \
   libluajit-5.1-dev
 
-COPY --from=osm2pgsql . ./osm2pgsql
-
-RUN cd osm2pgsql && \
-  rm -rf build && \
+RUN git clone ${OSM2PGSQL_REPOSITORY} ./osm2pgsql && \
+  cd osm2pgsql && \
+  git checkout ${OSM2PGSQL_COMMIT_SHA} && \
   mkdir build && \
   cd build && \
   cmake .. && \
